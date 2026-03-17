@@ -43,7 +43,7 @@ def format_citations(retrieved_docs):
                 "type": "PDF",
                 "file": meta.get("file_name", "Document"),
                 "page": meta.get("page", "N/A"),
-                "display": f"{meta.get('file_name', 'Document')} (Page {meta.get('page', 'N/A')})"
+                "display": f"{meta.get('filename', 'Document')} (Page {meta.get('page', 'N/A')})"
             })
 
         # -------------------------

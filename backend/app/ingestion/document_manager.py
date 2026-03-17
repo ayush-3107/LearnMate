@@ -1,8 +1,9 @@
 import os
 from typing import List, Dict
 
-from pdf_loader import PDFLoader
-from youtube_loader import load_youtube_transcript
+
+from ingestion.pdf_loader import PDFLoader
+from ingestion.youtube_loader import load_youtube_transcript
 
 
 class DocumentManager:
