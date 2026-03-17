@@ -4,7 +4,7 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # ingestion
-from ingestion.youtube_loader import load_youtube_transcript
+from ingestion.document_manager import DocumentManager
 
 # processing
 from processing.transcript_cleaner import clean_documents
@@ -16,102 +16,84 @@ from embeddings.embedding_model import EmbeddingModel
 # rag pipeline
 from rag.qa_pipeline import qa_pipeline
 
-# ✅ NEW: citation handler
+# citation handler
 from rag.citation_handler import format_citations, print_citations
 
 
 def main():
 
     # -------------------------
-    # Step 1: Load YouTube Video
+    # INPUTS
     # -------------------------
 
-    youtube_url = "https://www.youtube.com/watch?v=aircAruvnKk"
+    pdf_files = [
+        "backend/data/pdfs/sample_tables.pdf",
+        "backend/data/pdfs/sample_ml_notes.pdf"
 
-    print("\n📥 Loading YouTube captions...")
+    ]
 
-    raw_docs = load_youtube_transcript(youtube_url)
+    youtube_urls = [
+        "https://www.youtube.com/watch?v=aircAruvnKk"
+    ]
 
-    if not raw_docs:
-        print("❌ No transcript data found.")
+    # -------------------------
+    # Step 1: Load using DocumentManager
+    # -------------------------
+
+    print("\n🚀 Loading all sources...\n")
+
+    manager = DocumentManager()
+
+    documents = manager.load_all_sources(
+        pdf_paths=pdf_files,
+        youtube_urls=youtube_urls
+    )
+
+    if not documents:
+        print("❌ No data loaded")
         return
 
-    # -------------------------
-    # Step 2: Normalize Documents
-    # -------------------------
+    summary = manager.summarize(documents)
 
-    documents = []
-
-    for d in raw_docs:
-        documents.append({
-            "text": d["text"],
-            "metadata": {
-                "source": "youtube",
-                "video_url": youtube_url,
-                "title": "Neural Networks Explained",  # you can later auto-fetch
-                "timestamp": d["timestamp"],
-                "start_seconds": d["timestamp_seconds"],
-                "end_seconds": d["chunk_end_seconds"],
-                "link": d["source"]
-            }
-        })
-
-    print(f"✅ Loaded {len(documents)} transcript chunks")
+    print("\n📊 Dataset Summary:")
+    print(summary)
 
     # -------------------------
-    # Step 3: Clean Documents
+    # Step 2: Clean
     # -------------------------
 
     print("\n🧹 Cleaning documents...")
-
     clean_docs = clean_documents(documents)
 
     # -------------------------
-    # Step 4: Chunk Documents
+    # Step 3: Chunk
     # -------------------------
 
-    print("\n✂️ Chunking documents...")
-
+    print("\n✂️ Chunking...")
     chunks = chunk_documents(clean_docs)
-
     print(f"✅ Total chunks: {len(chunks)}")
 
     # -------------------------
-    # Step 5: Generate Embeddings
+    # Step 4: Embeddings
     # -------------------------
 
     print("\n🧠 Generating embeddings...")
-
     embedding_model = EmbeddingModel()
-
     embedded_docs = embedding_model.embed_documents(chunks)
 
-    print(f"✅ Embeddings created for {len(embedded_docs)} chunks")
-
     # -------------------------
-    # Step 6: Ask Question
+    # Step 5: QA Loop
     # -------------------------
 
-    query = "What is a neural network?"
-
-    print("\n💬 Running QA pipeline...")
+    
+    # query = input("\n💬 Ask a question (or type 'exit'): ")
+    query="What is supervised learning?"
 
     answer, sources = qa_pipeline(query, embedded_docs)
 
-    # -------------------------
-    # Step 7: Format Citations
-    # -------------------------
-
     citations = format_citations(sources)
 
-    # -------------------------
-    # Step 8: Print Result
-    # -------------------------
-
-    print("\n📌 QUESTION:\n", query)
-
     print("\n📢 ANSWER:\n", answer.strip())
-
     print_citations(citations)
 
 
