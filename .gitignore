@@ -1,1 +1,3 @@
 backend/app/ingestion/__pycache__/
+backend/app/rag/list_gemini_models.py
+.env
