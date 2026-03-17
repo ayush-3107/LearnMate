@@ -1,27 +1,36 @@
 from sentence_transformers import SentenceTransformer
 import numpy as np
+import faiss
 
-# load same embedding model used earlier
+# load embedding model
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
 
 def retrieve_documents(query, index, embedded_docs, k=3):
     """
-    query : user question
-    index : FAISS index
-    embedded_docs : original documents with embeddings
-    k : number of results
+    Retrieve top-k similar documents using FAISS
     """
 
-    # convert query to embedding
+    # -------------------------
+    # Step 1: Encode query
+    # -------------------------
     query_embedding = model.encode([query])
-
     query_vector = np.array(query_embedding).astype("float32")
 
-    # search in FAISS
+    # Normalize (important for cosine similarity behavior)
+    faiss.normalize_L2(query_vector)
+
+    # -------------------------
+    # Step 2: Search
+    # -------------------------
     distances, indices = index.search(query_vector, k)
 
-    # retrieve original documents
-    results = [embedded_docs[i] for i in indices[0]]
+    # -------------------------
+    # Step 3: Safe retrieval
+    # -------------------------
+    results = []
+    for i in indices[0]:
+        if i != -1 and i < len(embedded_docs):
+            results.append(embedded_docs[i])
 
     return results
