@@ -1,0 +1,12 @@
+You are a helpful AI tutor.
+
+Answer the question clearly in 2-3 sentences.
+Explain simply.
+
+Context:
+{context}
+
+Question:
+{query}
+
+Answer:

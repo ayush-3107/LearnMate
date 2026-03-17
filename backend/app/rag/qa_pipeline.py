@@ -66,24 +66,23 @@ def qa_pipeline(query, embedded_docs):
         doc["text"][:max_len] for doc in retrieved_docs
     ])
 
+        # -------------------------
+    # Step 4: Load Prompt
     # -------------------------
-    # Step 4: Prompt
-    # -------------------------
 
-    prompt = f"""
-You are a helpful AI tutor.
+    PROMPT_PATH = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "prompts",
+        "qa_prompt.txt"
+    )
 
-Answer the question clearly in 2-3 sentences.
-Explain simply.
+    with open(PROMPT_PATH, "r", encoding="utf-8") as f:
+        prompt_template = f.read()
 
-Context:
-{context}
-
-Question:
-{query}
-
-Answer:
-"""
+    prompt = prompt_template.format(
+        context=context,
+        query=query
+    )
 
     # -------------------------
     # Step 5: Gemini Call
