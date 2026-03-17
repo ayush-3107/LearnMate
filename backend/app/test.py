@@ -29,11 +29,12 @@ def main():
     pdf_files = [
         "backend/data/pdfs/sample_tables.pdf",
         "backend/data/pdfs/sample_ml_notes.pdf"
-
     ]
 
     youtube_urls = [
-        "https://www.youtube.com/watch?v=aircAruvnKk"
+        "https://www.youtube.com/watch?v=gmvvaobm7eQ",
+        "https://www.youtube.com/watch?v=IHZwWFHWa-w",
+        "https://www.youtube.com/watch?v=lsf060bLH_Y"
     ]
 
     # -------------------------
@@ -87,7 +88,7 @@ def main():
 
     
     # query = input("\n💬 Ask a question (or type 'exit'): ")
-    query="What is supervised learning?"
+    query="What is Neural Networks?"
 
     answer, sources = qa_pipeline(query, embedded_docs)
 
