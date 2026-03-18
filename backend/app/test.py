@@ -19,6 +19,19 @@ from rag.qa_pipeline import qa_pipeline
 # citation handler
 from rag.citation_handler import format_citations, print_citations
 
+from quiz.quiz_generator import QuizGenerator
+
+quiz_gen = QuizGenerator()
+
+quiz_text = quiz_gen.generate_quiz(
+    embedded_docs,
+    num_questions=3,
+    difficulty="hard",
+    sources=["pdf"]   # user choice
+)
+
+print("\n📝 QUIZ:\n")
+print(quiz_text)
 
 def main():
 
