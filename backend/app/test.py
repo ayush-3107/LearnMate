@@ -45,9 +45,9 @@ def main():
     ]
 
     youtube_urls = [
-        "https://www.youtube.com/watch?v=gmvvaobm7eQ",
-        "https://www.youtube.com/watch?v=IHZwWFHWa-w",
-        "https://www.youtube.com/watch?v=lsf060bLH_Y"
+        "https://www.youtube.com/watch?v=aircAruvnKk",
+        "https://www.youtube.com/watch?v=YRhxdVk_sIs",
+        "https://www.youtube.com/watch?v=gmvvaobm7eQ"
     ]
 
     # -------------------------
@@ -101,7 +101,7 @@ def main():
 
     
     # query = input("\n💬 Ask a question (or type 'exit'): ")
-    query="What is Neural Networks?"
+    query="What is Machine learning?"
 
     answer, sources = qa_pipeline(query, embedded_docs)
 

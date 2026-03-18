@@ -31,7 +31,7 @@ def format_citations(retrieved_docs):
                 "title": meta.get("title", "YouTube Video"),
                 "timestamp": meta.get("timestamp", "N/A"),
                 "link": meta.get("link", ""),
-                "display": f"{meta.get('title', 'YouTube Video')} ({meta.get('timestamp', 'N/A')})"
+                "display": f"{meta.get('title', '')} ({meta.get('timestamp', 'N/A')})"
             })
 
         # -------------------------
@@ -41,7 +41,7 @@ def format_citations(retrieved_docs):
 
             formatted.append({
                 "type": "PDF",
-                "file": meta.get("file_name", "Document"),
+                "file": meta.get("filename", "Document"),
                 "page": meta.get("page", "N/A"),
                 "display": f"{meta.get('filename', 'Document')} (Page {meta.get('page', 'N/A')})"
             })
