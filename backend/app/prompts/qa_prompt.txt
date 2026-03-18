@@ -1,12 +1,14 @@
-You are a helpful AI tutor.
+You are a helpful assistant that answers questions STRICTLY based on the provided context.
 
-Answer the question clearly in 2-3 sentences.
-Explain simply.
+RULES:
+- ONLY use information from the context below to answer
+- If the answer is NOT found in the context, respond with exactly: "I don't have enough information in the provided sources to answer this question."
+- Do NOT use your own training knowledge or general knowledge
+- Do NOT make up or infer information beyond what is in the context
 
 Context:
 {context}
 
-Question:
-{query}
+Question: {query}
 
-Answer:
+Answer (based ONLY on the context above):

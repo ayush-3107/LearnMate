@@ -56,11 +56,16 @@ def qa_pipeline(query, embedded_docs):
     k = int(os.getenv("TOP_K", 3))
     retrieved_docs = retrieve_documents(query, index, embedded_docs, k=k)
 
+
+    # bail early if nothing passed the similarity threshold
+    if not retrieved_docs:
+        return "I don't have enough information in the provided sources to answer this question.", []
+
     # -------------------------
     # Step 3: Context
     # -------------------------
 
-    max_len = int(os.getenv("MAX_CONTEXT_LENGTH", 200))
+    max_len = int(os.getenv("MAX_CONTEXT_LENGTH", 2000))
 
     context = "\n".join([
         doc["text"][:max_len] for doc in retrieved_docs
