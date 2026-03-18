@@ -24,11 +24,15 @@ from quiz.scoring import QuizScorer
 def main():
 
     pdf_files = [
-        "backend/data/pdfs/sample_ml_notes.pdf"
+        "backend/data/pdfs/sample_ml_notes.pdf",
+        "backend/data/pdfs/sample_tables.pdf",
+        "backend/data/pdfs/sample_multicolumn.pdf"
     ]
 
     youtube_urls = [
-        "https://www.youtube.com/watch?v=gmvvaobm7eQ"
+        "https://www.youtube.com/watch?v=gmvvaobm7eQ",
+        "https://youtu.be/9gGnTQTYNaE?si=tt83VIFLeL-6kUcL",
+        "https://youtu.be/ukzFI9rgwfU?si=tzqOHrYfU8QBzvp9"
     ]
 
     print("\n🚀 Loading data...")
@@ -56,14 +60,9 @@ def main():
 
     query = input("\nEnter topic for quiz: ")
     num_q = int(input("Number of questions: "))
-    difficulty = input("Difficulty (easy/medium/hard): ")
+    difficulty = input("Difficulty (easy/medium/hard/mix): ").lower()
 
-    source_choice = input("Sources (pdf/youtube/both): ")
-
-    if source_choice == "both":
-        sources = ["pdf", "youtube"]
-    else:
-        sources = [source_choice]
+    sources = None  # use all available sources
 
     # -------------------------
     # GENERATE QUIZ

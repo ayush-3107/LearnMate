@@ -30,11 +30,13 @@ class QuizGenerator:
     def get_difficulty(self, level):
 
         if level == "easy":
-            return "simple factual questions"
+            return "only easy, simple factual questions"
         elif level == "medium":
-            return "conceptual understanding questions"
+            return "only medium, conceptual understanding questions"
         elif level == "hard":
-            return "analytical and tricky questions"
+            return "only hard, analytical and tricky questions"
+        elif level == "mix":
+            return "a balanced mix of easy, medium, and hard questions"
         return "general questions"
 
     # -------------------------
@@ -113,7 +115,10 @@ class QuizGenerator:
         try:
             response = self.client.models.generate_content(
                 model=self.model,
-                contents=prompt
+                contents=prompt,
+                config={
+                    "temperature": 0.3,   # less randomness
+                }
             )
 
             return response.text.strip()
