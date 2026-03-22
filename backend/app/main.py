@@ -27,12 +27,64 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# ── Session State ──────────────────────────────────────────────────────────────
+for key, default in {
+    "pipeline_ready": False,
+    "embedded_docs": None,
+    "doc_summary": {},
+    "chat_history": [],
+    "processing": False,
+    "yt_inputs": [""],
+    "removed_pdf_ids": [],
+    "theme": "light",          # NEW — track current theme
+}.items():
+    if key not in st.session_state:
+        st.session_state[key] = default
+
+# ── Theme toggle handler ───────────────────────────────────────────────────────
+# We read a query-param trick: Streamlit reruns on button click, so we just
+# flip the session-state value and re-inject the CSS variable block.
+_is_dark = st.session_state.theme == "dark"
+
+if st.button("☀ Light" if _is_dark else "🌙 Dark", key="theme_switch", help="Toggle theme"):
+    st.session_state.theme = "light" if _is_dark else "dark"
+    st.rerun()
+
+theme_tokens = {
+    "bg": "#0b1220" if _is_dark else "#ffffff",
+    "surface": "#111a2d" if _is_dark else "#f8f9fa",
+    "card": "#17243a" if _is_dark else "#f1f3f5",
+    "border": "#2a3a56" if _is_dark else "#dee2e6",
+    "accent": "#6ea8ff" if _is_dark else "#2563eb",
+    "accent2": "#38d6c3" if _is_dark else "#0891b2",
+    "accent3": "#c4a7ff" if _is_dark else "#7c3aed",
+    "text": "#eaf1ff" if _is_dark else "#111827",
+    "muted": "#a3b2cc" if _is_dark else "#6b7280",
+    "success": "#4ade80" if _is_dark else "#059669",
+    "warning": "#fbbf24" if _is_dark else "#d97706",
+    "shadow": "0 1px 3px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.3)" if _is_dark else "0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05)",
+    "shadow_lg": "0 4px 16px rgba(0,0,0,.5), 0 2px 4px rgba(0,0,0,.4)" if _is_dark else "0 4px 16px rgba(0,0,0,.1), 0 2px 4px rgba(0,0,0,.06)",
+    "pill_green_bg": "rgba(52,211,153,.1)" if _is_dark else "rgba(5,150,105,.08)",
+    "pill_green_border": "rgba(52,211,153,.25)" if _is_dark else "rgba(5,150,105,.2)",
+    "pill_blue_bg": "rgba(59,130,246,.1)" if _is_dark else "rgba(37,99,235,.08)",
+    "pill_blue_border": "rgba(59,130,246,.25)" if _is_dark else "rgba(37,99,235,.2)",
+    "pill_orange_bg": "rgba(251,191,36,.1)" if _is_dark else "rgba(217,119,6,.08)",
+    "pill_orange_border": "rgba(251,191,36,.25)" if _is_dark else "rgba(217,119,6,.2)",
+    "pill_pink_bg": "rgba(167,139,250,.1)" if _is_dark else "rgba(124,58,237,.08)",
+    "pill_pink_border": "rgba(167,139,250,.25)" if _is_dark else "rgba(124,58,237,.2)",
+    "input_focus_shadow": "0 0 0 3px rgba(110,168,255,.22)" if _is_dark else "0 0 0 3px rgba(37,99,235,.12)",
+    "link_hover_bg": "rgba(45,212,191,.06)" if _is_dark else "rgba(8,145,178,.06)",
+    "btn_shadow": "0 3px 12px rgba(110,168,255,.28)" if _is_dark else "0 2px 8px rgba(37,99,235,.25)",
+    "btn_shadow_hover": "0 6px 18px rgba(110,168,255,.38)" if _is_dark else "0 4px 14px rgba(37,99,235,.35)",
+    "toggle_shadow": "0 3px 12px rgba(3,8,20,.65)" if _is_dark else "0 2px 10px rgba(0,0,0,.1)",
+}
+
 # ── Custom CSS ─────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;1,9..144,300&display=swap');
 
-/* ── Adaptive Color System ── */
+/* ── Color tokens (Python-driven theme state) ── */
 :root {
     --bg:        #ffffff;
     --surface:   #f8f9fa;
@@ -50,24 +102,19 @@ st.markdown("""
     --shadow:    0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
     --shadow-lg: 0 4px 16px rgba(0,0,0,.1), 0 2px 4px rgba(0,0,0,.06);
     --radius:    8px;
-}
-
-@media (prefers-color-scheme: dark) {
-    :root {
-        --bg:        #0f172a;
-        --surface:   #1e293b;
-        --card:      #263244;
-        --border:    #334155;
-        --accent:    #3b82f6;
-        --accent2:   #22d3ee;
-        --accent3:   #a78bfa;
-        --text:      #f1f5f9;
-        --muted:     #94a3b8;
-        --success:   #34d399;
-        --warning:   #fbbf24;
-        --shadow:    0 1px 3px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.3);
-        --shadow-lg: 0 4px 16px rgba(0,0,0,.5), 0 2px 4px rgba(0,0,0,.4);
-    }
+    --pill-green-bg: rgba(5,150,105,.08);
+    --pill-green-border: rgba(5,150,105,.2);
+    --pill-blue-bg: rgba(37,99,235,.08);
+    --pill-blue-border: rgba(37,99,235,.2);
+    --pill-orange-bg: rgba(217,119,6,.08);
+    --pill-orange-border: rgba(217,119,6,.2);
+    --pill-pink-bg: rgba(124,58,237,.08);
+    --pill-pink-border: rgba(124,58,237,.2);
+    --input-focus-shadow: 0 0 0 3px rgba(37,99,235,.12);
+    --link-hover-bg: rgba(8,145,178,.06);
+    --btn-shadow: 0 2px 8px rgba(37,99,235,.25);
+    --btn-shadow-hover: 0 4px 14px rgba(37,99,235,.35);
+    --toggle-shadow: 0 2px 10px rgba(0,0,0,.1);
 }
 
 /* ── Base ── */
@@ -77,9 +124,23 @@ html, body, [class*="css"] {
     color: var(--text);
 }
 
+[data-testid="stAppViewContainer"] {
+    background: radial-gradient(1200px 650px at 80% -10%, rgba(56,214,195,.08), transparent 55%),
+                radial-gradient(1000px 520px at -15% 5%, rgba(110,168,255,.12), transparent 50%),
+                var(--bg) !important;
+}
+
 /* ── Hide Streamlit chrome ── */
 #MainMenu, footer, header { visibility: hidden; }
 .block-container { padding: 0.9rem 2.5rem 4rem; max-width: 1200px; }
+
+/* ── Theme Toggle Button ── */
+.theme-toggle-wrapper {
+    position: fixed;
+    top: 14px;
+    right: 18px;
+    z-index: 9999;
+}
 
 /* ── Sidebar ── */
 [data-testid="stSidebar"] {
@@ -190,17 +251,10 @@ html, body, [class*="css"] {
     letter-spacing: 0.07em;
     text-transform: uppercase;
 }
-.pill-green  { background: rgba(5,150,105,.08);  color: var(--success); border: 1px solid rgba(5,150,105,.2); }
-.pill-blue   { background: rgba(37,99,235,.08);  color: var(--accent);  border: 1px solid rgba(37,99,235,.2); }
-.pill-orange { background: rgba(217,119,6,.08);  color: var(--warning); border: 1px solid rgba(217,119,6,.2); }
-.pill-pink   { background: rgba(124,58,237,.08); color: var(--accent3); border: 1px solid rgba(124,58,237,.2); }
-
-@media (prefers-color-scheme: dark) {
-    .pill-green  { background: rgba(52,211,153,.1);  color: var(--success); border: 1px solid rgba(52,211,153,.25); }
-    .pill-blue   { background: rgba(59,130,246,.1);  color: var(--accent);  border: 1px solid rgba(59,130,246,.25); }
-    .pill-orange { background: rgba(251,191,36,.1);  color: var(--warning); border: 1px solid rgba(251,191,36,.25); }
-    .pill-pink   { background: rgba(167,139,250,.1); color: var(--accent3); border: 1px solid rgba(167,139,250,.25); }
-}
+.pill-green  { background: var(--pill-green-bg);  color: var(--success); border: 1px solid var(--pill-green-border); }
+.pill-blue   { background: var(--pill-blue-bg);   color: var(--accent);  border: 1px solid var(--pill-blue-border); }
+.pill-orange { background: var(--pill-orange-bg); color: var(--warning); border: 1px solid var(--pill-orange-border); }
+.pill-pink   { background: var(--pill-pink-bg);   color: var(--accent3); border: 1px solid var(--pill-pink-border); }
 
 /* ── Answer box ── */
 .answer-box {
@@ -306,14 +360,8 @@ html, body, [class*="css"] {
 .stTextInput > div > div > input:focus,
 .stTextArea > div > div > textarea:focus {
     border-color: var(--accent) !important;
-    box-shadow: 0 0 0 3px rgba(37,99,235,.12) !important;
+    box-shadow: var(--input-focus-shadow) !important;
     outline: none !important;
-}
-@media (prefers-color-scheme: dark) {
-    .stTextInput > div > div > input:focus,
-    .stTextArea > div > div > textarea:focus {
-        box-shadow: 0 0 0 3px rgba(59,130,246,.15) !important;
-    }
 }
 
 /* ── Buttons ── */
@@ -328,20 +376,19 @@ html, body, [class*="css"] {
     text-transform: uppercase !important;
     padding: 0.55rem 1.4rem !important;
     transition: opacity .15s, transform .12s, box-shadow .15s !important;
-    box-shadow: 0 2px 8px rgba(37,99,235,.25) !important;
+    box-shadow: var(--btn-shadow) !important;
     font-weight: 600 !important;
 }
 .stButton > button:hover {
     opacity: .88 !important;
     transform: translateY(-1px) !important;
-    box-shadow: 0 4px 14px rgba(37,99,235,.35) !important;
+    box-shadow: var(--btn-shadow-hover) !important;
 }
 .stButton > button:active {
     transform: translateY(0) !important;
     opacity: 1 !important;
 }
 
-/* Secondary button (Clear history, Reset, Add URL) */
 button[kind="secondary"],
 .stButton > button[data-testid*="clear"],
 .stButton > button[data-testid*="reset"] {
@@ -372,13 +419,8 @@ button[kind="secondary"],
     padding: 0.5rem;
     transition: border-color .2s;
 }
-[data-testid="stFileUploader"]:hover {
-    border-color: var(--accent2);
-}
-/* Hide Streamlit's built-in uploaded-file list so files appear only once below */
-[data-testid="stFileUploaderFile"] {
-    display: none !important;
-}
+[data-testid="stFileUploader"]:hover { border-color: var(--accent2); }
+[data-testid="stFileUploaderFile"] { display: none !important; }
 
 /* ── Expander ── */
 [data-testid="stExpander"] {
@@ -438,11 +480,9 @@ button[kind="secondary"],
     color: var(--accent) !important;
     border-bottom-color: var(--accent) !important;
 }
-[data-testid="stTabs"] button[role="tab"]:hover {
-    color: var(--text) !important;
-}
+[data-testid="stTabs"] button[role="tab"]:hover { color: var(--text) !important; }
 
-/* ── Link buttons (sources) ── */
+/* ── Link buttons ── */
 [data-testid="stLinkButton"] > a {
     background: var(--card) !important;
     color: var(--accent2) !important;
@@ -459,12 +499,7 @@ button[kind="secondary"],
 }
 [data-testid="stLinkButton"] > a:hover {
     border-color: var(--accent2) !important;
-    background: rgba(8,145,178,.06) !important;
-}
-@media (prefers-color-scheme: dark) {
-    [data-testid="stLinkButton"] > a:hover {
-        background: rgba(45,212,191,.06) !important;
-    }
+    background: var(--link-hover-bg) !important;
 }
 
 /* ── Status box ── */
@@ -474,14 +509,14 @@ button[kind="secondary"],
     border-radius: var(--radius) !important;
 }
 
-/* ── Alerts / errors ── */
+/* ── Alerts ── */
 [data-testid="stAlert"] {
     border-radius: var(--radius) !important;
     font-family: var(--mono) !important;
     font-size: 0.8rem !important;
 }
 
-/* ── Toast-style notice ── */
+/* ── Notice ── */
 .notice {
     font-family: var(--mono);
     font-size: 0.68rem;
@@ -496,35 +531,82 @@ button[kind="secondary"],
 ::-webkit-scrollbar-track { background: var(--surface); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* ── Theme toggle button styling ── */
+.st-key-theme_switch {
+    position: fixed;
+    top: 14px;
+    right: 18px;
+    z-index: 99999;
+}
+
+.st-key-theme_switch > div {
+    margin: 0 !important;
+}
+
+.st-key-theme_switch button {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 50px;
+    padding: 6px 14px 6px 10px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    box-shadow: var(--toggle-shadow);
+    transition: border-color 0.2s, color 0.2s, box-shadow 0.2s;
+    text-decoration: none;
+    user-select: none;
+}
+.st-key-theme_switch button:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 3px 14px rgba(37,99,235,0.18);
+}
 </style>
 """, unsafe_allow_html=True)
 
-
-# ── Session State ──────────────────────────────────────────────────────────────
-for key, default in {
-    "pipeline_ready": False,
-    "embedded_docs": None,
-    "doc_summary": {},
-    "chat_history": [],
-    "processing": False,
-    "yt_inputs": [""],
-    "removed_pdf_ids": [],
-}.items():
-    if key not in st.session_state:
-        st.session_state[key] = default
-
-
-@st.cache_resource
-def load_qa_modules():
-    """Import QA modules once and cache — prevents repeated module-level execution."""
-    from rag.qa_pipeline import qa_pipeline
-    from rag.citation_handler import format_citations
-    return qa_pipeline, format_citations
-
+st.markdown(f"""
+<style>
+:root {{
+    --bg: {theme_tokens['bg']};
+    --surface: {theme_tokens['surface']};
+    --card: {theme_tokens['card']};
+    --border: {theme_tokens['border']};
+    --accent: {theme_tokens['accent']};
+    --accent2: {theme_tokens['accent2']};
+    --accent3: {theme_tokens['accent3']};
+    --text: {theme_tokens['text']};
+    --muted: {theme_tokens['muted']};
+    --success: {theme_tokens['success']};
+    --warning: {theme_tokens['warning']};
+    --shadow: {theme_tokens['shadow']};
+    --shadow-lg: {theme_tokens['shadow_lg']};
+    --pill-green-bg: {theme_tokens['pill_green_bg']};
+    --pill-green-border: {theme_tokens['pill_green_border']};
+    --pill-blue-bg: {theme_tokens['pill_blue_bg']};
+    --pill-blue-border: {theme_tokens['pill_blue_border']};
+    --pill-orange-bg: {theme_tokens['pill_orange_bg']};
+    --pill-orange-border: {theme_tokens['pill_orange_border']};
+    --pill-pink-bg: {theme_tokens['pill_pink_bg']};
+    --pill-pink-border: {theme_tokens['pill_pink_border']};
+    --input-focus-shadow: {theme_tokens['input_focus_shadow']};
+    --link-hover-bg: {theme_tokens['link_hover_bg']};
+    --btn-shadow: {theme_tokens['btn_shadow']};
+    --btn-shadow-hover: {theme_tokens['btn_shadow_hover']};
+    --toggle-shadow: {theme_tokens['toggle_shadow']};
+}}
+</style>
+""", unsafe_allow_html=True)
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def extract_link_from_source(citation) -> str:
-    """Extract link from a format_citations() dict."""
     if isinstance(citation, dict):
         ctype = citation.get("type", "")
         if ctype == "YouTube":
@@ -537,13 +619,19 @@ def extract_link_from_source(citation) -> str:
 def is_youtube(link: str) -> bool:
     return "youtube.com" in link or "youtu.be" in link
 
-
 def source_icon(link: str) -> str:
     if is_youtube(link):
         return "▶"
     if link.lower().endswith(".pdf") or "pdf" in link.lower():
         return "📄"
     return "🔗"
+
+
+@st.cache_resource
+def load_qa_modules():
+    from rag.qa_pipeline import qa_pipeline
+    from rag.citation_handler import format_citations
+    return qa_pipeline, format_citations
 
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
@@ -715,7 +803,6 @@ with tab_ingest:
         yt_urls = [u.strip() for u in st.session_state.yt_inputs if u.strip()]
         pdf_paths = []
 
-        # Save uploaded PDFs to temp files
         if active_uploaded_pdfs:
             import tempfile, shutil
             tmp_dir = tempfile.mkdtemp()
@@ -738,7 +825,6 @@ with tab_ingest:
 
                 with st.status("Running pipeline…", expanded=True) as status:
 
-                    # Step 0 — Load
                     st.write("📥 Loading sources — may take a moment for YouTube videos…")
                     progress_bar.progress(5, text="📥  Loading sources…")
                     manager = DocumentManager()
@@ -756,21 +842,18 @@ with tab_ingest:
 
                     raw_summary = manager.summarize(documents)
 
-                    # Step 1 — Clean
                     st.write("🧹 Cleaning and normalising text…")
                     progress_bar.progress(30, text="🧹  Cleaning text…")
                     clean_docs = clean_documents(documents)
                     progress_bar.progress(45, text="🧹  Text cleaned!")
                     st.write("✅ Text cleaned")
 
-                    # Step 2 — Chunk
                     st.write("✂️ Chunking documents…")
                     progress_bar.progress(50, text="✂️  Chunking…")
                     chunks = chunk_documents(clean_docs)
                     progress_bar.progress(62, text=f"✂️  {len(chunks)} chunks created!")
                     st.write(f"✅ Created {len(chunks)} chunks")
 
-                    # Step 3 — Embed
                     st.write("🧠 Generating embeddings — this is the slow step…")
                     progress_bar.progress(65, text="🧠  Embedding…")
                     embedding_model = EmbeddingModel()
@@ -778,7 +861,6 @@ with tab_ingest:
                     progress_bar.progress(95, text="🧠  Embeddings ready!")
                     st.write(f"✅ Embedded {len(embedded_docs)} documents")
 
-                    # Done
                     progress_bar.progress(100, text="✅  Pipeline complete!")
                     status.update(label="✅ Pipeline complete — go to Ask Questions tab!", state="complete", expanded=False)
 
@@ -812,21 +894,17 @@ with tab_qa:
             unsafe_allow_html=True,
         )
     else:
-        # Chat history
         if st.session_state.chat_history:
             st.markdown('<div class="section-label">Conversation</div>', unsafe_allow_html=True)
             for entry in st.session_state.chat_history:
-                # User bubble
                 st.markdown(
                     f'<div class="user-bubble"><span>{entry["question"]}</span></div>',
                     unsafe_allow_html=True,
                 )
-                # Answer
                 st.markdown(
                     f'<div class="answer-box">{entry["answer"]}</div>',
                     unsafe_allow_html=True,
                 )
-                # Sources
                 if entry.get("sources"):
                     with st.expander(f"📎  {len(entry['sources'])} source(s)  — click to expand"):
                         for src in entry["sources"]:
@@ -834,7 +912,6 @@ with tab_qa:
                             display = src.get("display", "")
                             link = src.get("link", "")
                             fname = src.get("file", "")
-                            timestamp = src.get("timestamp", "")
 
                             if stype == "YouTube" and link:
                                 label = f"▶  {display}" if display else link
@@ -861,7 +938,6 @@ with tab_qa:
                                 )
                 st.markdown("<br>", unsafe_allow_html=True)
 
-        # Question input
         st.markdown('<div class="section-label">Ask</div>', unsafe_allow_html=True)
         question = st.text_area(
             "Question",
