@@ -30,98 +30,124 @@ st.set_page_config(
 # ── Custom CSS ─────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;1,9..144,300&display=swap');
 
-/* ── Root Variables ── */
+/* ── Adaptive Color System ── */
 :root {
-    --bg:        #0a0a0f;
-    --surface:   #111118;
-    --card:      #16161f;
-    --border:    #2a2a3a;
-    --accent:    #6c63ff;
-    --accent2:   #00e5ff;
-    --accent3:   #ff6b9d;
-    --text:      #e8e8f0;
-    --muted:     #6b6b80;
-    --success:   #00c896;
-    --warning:   #ffb347;
-    --mono:      'Space Mono', monospace;
-    --sans:      'DM Sans', sans-serif;
+    --bg:        #ffffff;
+    --surface:   #f8f9fa;
+    --card:      #f1f3f5;
+    --border:    #dee2e6;
+    --accent:    #2563eb;
+    --accent2:   #0891b2;
+    --accent3:   #7c3aed;
+    --text:      #111827;
+    --muted:     #6b7280;
+    --success:   #059669;
+    --warning:   #d97706;
+    --mono:      'IBM Plex Mono', monospace;
+    --serif:     'Fraunces', serif;
+    --shadow:    0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+    --shadow-lg: 0 4px 16px rgba(0,0,0,.1), 0 2px 4px rgba(0,0,0,.06);
+    --radius:    8px;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg:        #0f172a;
+        --surface:   #1e293b;
+        --card:      #263244;
+        --border:    #334155;
+        --accent:    #3b82f6;
+        --accent2:   #22d3ee;
+        --accent3:   #a78bfa;
+        --text:      #f1f5f9;
+        --muted:     #94a3b8;
+        --success:   #34d399;
+        --warning:   #fbbf24;
+        --shadow:    0 1px 3px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.3);
+        --shadow-lg: 0 4px 16px rgba(0,0,0,.5), 0 2px 4px rgba(0,0,0,.4);
+    }
 }
 
 /* ── Base ── */
 html, body, [class*="css"] {
-    font-family: var(--sans);
-    background-color: var(--bg);
+    font-family: var(--serif);
+    background-color: var(--bg) !important;
     color: var(--text);
 }
 
 /* ── Hide Streamlit chrome ── */
 #MainMenu, footer, header { visibility: hidden; }
-.block-container { padding: 2rem 2.5rem 4rem; max-width: 1200px; }
+.block-container { padding: 0.9rem 2.5rem 4rem; max-width: 1200px; }
 
 /* ── Sidebar ── */
 [data-testid="stSidebar"] {
-    background: var(--surface);
-    border-right: 1px solid var(--border);
+    background: var(--surface) !important;
+    border-right: 1px solid var(--border) !important;
 }
 [data-testid="stSidebar"] .block-container { padding: 1.5rem 1rem; }
 
 /* ── Hero Header ── */
 .hero {
     text-align: center;
-    padding: 2.5rem 0 2rem;
-    position: relative;
+    padding: 1.2rem 0 1.7rem;
 }
 .hero-badge {
     display: inline-block;
     font-family: var(--mono);
-    font-size: 0.65rem;
-    letter-spacing: 0.2em;
+    font-size: 0.62rem;
+    letter-spacing: 0.22em;
     text-transform: uppercase;
     color: var(--accent2);
     border: 1px solid var(--accent2);
-    padding: 0.3rem 0.9rem;
+    padding: 0.28rem 0.85rem;
     border-radius: 2px;
-    margin-bottom: 1rem;
+    margin-bottom: 1.1rem;
+    opacity: 0.85;
 }
 .hero h1 {
-    font-family: var(--mono);
-    font-size: 2.6rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 60%, var(--accent3) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    font-family: var(--serif);
+    font-size: 3rem;
+    font-weight: 600;
+    font-style: italic;
+    letter-spacing: -0.01em;
+    color: var(--text);
     margin: 0 0 0.5rem;
-    line-height: 1.1;
+    line-height: 1.05;
+}
+.hero h1 span {
+    color: var(--accent);
+    font-style: normal;
 }
 .hero p {
     color: var(--muted);
-    font-size: 0.95rem;
-    font-weight: 300;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
     margin: 0;
 }
 
 /* ── Divider ── */
 .divider {
     height: 1px;
-    background: linear-gradient(90deg, transparent, var(--border), transparent);
-    margin: 1.5rem 0;
+    background: var(--border);
+    margin: 0.55rem 0 0.8rem;
+    opacity: 0.7;
 }
 
 /* ── Section Labels ── */
 .section-label {
     font-family: var(--mono);
-    font-size: 0.65rem;
-    letter-spacing: 0.18em;
+    font-size: 0.6rem;
+    letter-spacing: 0.22em;
     text-transform: uppercase;
-    color: var(--accent);
-    margin-bottom: 0.6rem;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.6rem;
 }
 .section-label::after {
     content: '';
@@ -134,15 +160,18 @@ html, body, [class*="css"] {
 .info-card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 1rem 1.2rem;
-    margin-bottom: 0.6rem;
-    font-size: 0.85rem;
+    border-radius: var(--radius);
+    padding: 0.9rem 1.1rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.84rem;
+    box-shadow: var(--shadow);
+    transition: border-color 0.2s;
 }
+.info-card:hover { border-color: var(--accent); }
 .info-card .label {
     font-family: var(--mono);
-    font-size: 0.6rem;
-    letter-spacing: 0.15em;
+    font-size: 0.58rem;
+    letter-spacing: 0.16em;
     color: var(--muted);
     text-transform: uppercase;
     margin-bottom: 0.3rem;
@@ -153,53 +182,84 @@ html, body, [class*="css"] {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     font-family: var(--mono);
-    padding: 0.2rem 0.7rem;
+    padding: 0.22rem 0.75rem;
     border-radius: 20px;
-    font-weight: 700;
-    letter-spacing: 0.05em;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
 }
-.pill-green  { background: rgba(0,200,150,.12); color: var(--success); border: 1px solid rgba(0,200,150,.3); }
-.pill-blue   { background: rgba(108,99,255,.12); color: var(--accent);  border: 1px solid rgba(108,99,255,.3); }
-.pill-orange { background: rgba(255,179,71,.12); color: var(--warning); border: 1px solid rgba(255,179,71,.3); }
-.pill-pink   { background: rgba(255,107,157,.12); color: var(--accent3); border: 1px solid rgba(255,107,157,.3); }
+.pill-green  { background: rgba(5,150,105,.08);  color: var(--success); border: 1px solid rgba(5,150,105,.2); }
+.pill-blue   { background: rgba(37,99,235,.08);  color: var(--accent);  border: 1px solid rgba(37,99,235,.2); }
+.pill-orange { background: rgba(217,119,6,.08);  color: var(--warning); border: 1px solid rgba(217,119,6,.2); }
+.pill-pink   { background: rgba(124,58,237,.08); color: var(--accent3); border: 1px solid rgba(124,58,237,.2); }
+
+@media (prefers-color-scheme: dark) {
+    .pill-green  { background: rgba(52,211,153,.1);  color: var(--success); border: 1px solid rgba(52,211,153,.25); }
+    .pill-blue   { background: rgba(59,130,246,.1);  color: var(--accent);  border: 1px solid rgba(59,130,246,.25); }
+    .pill-orange { background: rgba(251,191,36,.1);  color: var(--warning); border: 1px solid rgba(251,191,36,.25); }
+    .pill-pink   { background: rgba(167,139,250,.1); color: var(--accent3); border: 1px solid rgba(167,139,250,.25); }
+}
 
 /* ── Answer box ── */
 .answer-box {
-    background: linear-gradient(135deg, rgba(108,99,255,.06), rgba(0,229,255,.04));
-    border: 1px solid rgba(108,99,255,.35);
+    background: var(--card);
+    border: 1px solid var(--border);
     border-left: 3px solid var(--accent);
-    border-radius: 6px;
-    padding: 1.4rem 1.6rem;
+    border-radius: var(--radius);
+    padding: 1.3rem 1.5rem;
     font-size: 0.95rem;
-    line-height: 1.75;
+    line-height: 1.8;
     color: var(--text);
-    margin-top: 1rem;
+    margin-top: 0.8rem;
+    box-shadow: var(--shadow);
+}
+
+/* ── User message bubble ── */
+.user-bubble {
+    text-align: right;
+    margin-bottom: 0.5rem;
+}
+.user-bubble span {
+    background: var(--accent);
+    color: #fff;
+    border-radius: 16px 16px 4px 16px;
+    padding: 0.48rem 1.05rem;
+    display: inline-block;
+    font-size: 0.88rem;
+    max-width: 80%;
+    font-family: var(--serif);
+    font-weight: 300;
+    line-height: 1.5;
 }
 
 /* ── Source cards ── */
 .source-item {
     display: flex;
     align-items: center;
-    gap: 0.8rem;
+    gap: 0.75rem;
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 5px;
-    padding: 0.65rem 1rem;
-    margin-bottom: 0.5rem;
-    transition: border-color .2s;
+    border-radius: 6px;
+    padding: 0.6rem 0.95rem;
+    margin-bottom: 0.45rem;
+    transition: border-color .2s, box-shadow .2s;
+    box-shadow: var(--shadow);
 }
-.source-item:hover { border-color: var(--accent2); }
+.source-item:hover {
+    border-color: var(--accent2);
+    box-shadow: var(--shadow-lg);
+}
 .source-icon {
-    font-size: 1rem;
-    width: 28px;
+    font-size: 0.95rem;
+    width: 26px;
     text-align: center;
     flex-shrink: 0;
 }
 .source-link {
     font-family: var(--mono);
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     color: var(--accent2);
     text-decoration: none;
     word-break: break-all;
@@ -209,36 +269,51 @@ html, body, [class*="css"] {
 .pipeline-step {
     display: flex;
     align-items: flex-start;
-    gap: 1rem;
-    padding: 0.7rem 0;
+    gap: 0.9rem;
+    padding: 0.65rem 0;
     border-bottom: 1px solid var(--border);
 }
 .pipeline-step:last-child { border-bottom: none; }
 .step-num {
     font-family: var(--mono);
-    font-size: 0.65rem;
-    color: var(--muted);
+    font-size: 0.6rem;
+    color: var(--accent);
     width: 20px;
     flex-shrink: 0;
     padding-top: 2px;
+    font-weight: 600;
 }
-.step-text { font-size: 0.85rem; color: var(--text); }
-.step-sub  { font-size: 0.75rem; color: var(--muted); margin-top: 0.15rem; }
+.step-text {
+    font-size: 0.84rem;
+    color: var(--text);
+    font-family: var(--serif);
+    font-weight: 500;
+}
+.step-sub  { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); margin-top: 0.12rem; }
 
 /* ── Inputs ── */
 .stTextInput > div > div > input,
 .stTextArea > div > div > textarea {
     background: var(--card) !important;
     border: 1px solid var(--border) !important;
-    border-radius: 5px !important;
+    border-radius: 6px !important;
     color: var(--text) !important;
-    font-family: var(--sans) !important;
+    font-family: var(--serif) !important;
     font-size: 0.9rem !important;
+    box-shadow: var(--shadow) !important;
+    transition: border-color .2s, box-shadow .2s !important;
 }
 .stTextInput > div > div > input:focus,
 .stTextArea > div > div > textarea:focus {
     border-color: var(--accent) !important;
-    box-shadow: 0 0 0 2px rgba(108,99,255,.15) !important;
+    box-shadow: 0 0 0 3px rgba(37,99,235,.12) !important;
+    outline: none !important;
+}
+@media (prefers-color-scheme: dark) {
+    .stTextInput > div > div > input:focus,
+    .stTextArea > div > div > textarea:focus {
+        box-shadow: 0 0 0 3px rgba(59,130,246,.15) !important;
+    }
 }
 
 /* ── Buttons ── */
@@ -246,32 +321,77 @@ html, body, [class*="css"] {
     background: var(--accent) !important;
     color: #fff !important;
     border: none !important;
-    border-radius: 5px !important;
+    border-radius: 6px !important;
     font-family: var(--mono) !important;
-    font-size: 0.78rem !important;
-    letter-spacing: 0.08em !important;
+    font-size: 0.72rem !important;
+    letter-spacing: 0.1em !important;
     text-transform: uppercase !important;
     padding: 0.55rem 1.4rem !important;
-    transition: opacity .2s, transform .1s !important;
+    transition: opacity .15s, transform .12s, box-shadow .15s !important;
+    box-shadow: 0 2px 8px rgba(37,99,235,.25) !important;
+    font-weight: 600 !important;
 }
 .stButton > button:hover {
-    opacity: .85 !important;
+    opacity: .88 !important;
     transform: translateY(-1px) !important;
+    box-shadow: 0 4px 14px rgba(37,99,235,.35) !important;
+}
+.stButton > button:active {
+    transform: translateY(0) !important;
+    opacity: 1 !important;
+}
+
+/* Secondary button (Clear history, Reset, Add URL) */
+button[kind="secondary"],
+.stButton > button[data-testid*="clear"],
+.stButton > button[data-testid*="reset"] {
+    background: var(--card) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: var(--shadow) !important;
+}
+.stButton > button[data-testid*="del"] {
+    background: transparent !important;
+    color: var(--muted) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: none !important;
+    padding: 0.3rem 0.6rem !important;
+    font-size: 0.8rem !important;
+}
+.stButton > button[data-testid*="del"]:hover {
+    color: var(--accent3) !important;
+    border-color: var(--accent3) !important;
+    box-shadow: none !important;
 }
 
 /* ── File uploader ── */
 [data-testid="stFileUploader"] {
     background: var(--card);
-    border: 1px dashed var(--border);
-    border-radius: 6px;
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius);
     padding: 0.5rem;
+    transition: border-color .2s;
+}
+[data-testid="stFileUploader"]:hover {
+    border-color: var(--accent2);
+}
+/* Hide Streamlit's built-in uploaded-file list so files appear only once below */
+[data-testid="stFileUploaderFile"] {
+    display: none !important;
 }
 
 /* ── Expander ── */
 [data-testid="stExpander"] {
-    background: var(--card);
+    background: var(--card) !important;
     border: 1px solid var(--border) !important;
-    border-radius: 6px !important;
+    border-radius: var(--radius) !important;
+    box-shadow: var(--shadow) !important;
+}
+[data-testid="stExpander"] summary {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
 }
 
 /* ── Progress / spinner ── */
@@ -279,10 +399,47 @@ html, body, [class*="css"] {
 
 /* ── Metric ── */
 [data-testid="stMetric"] {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 0.8rem 1rem;
+    background: var(--card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    padding: 0.8rem 1rem !important;
+    box-shadow: var(--shadow) !important;
+}
+[data-testid="stMetricLabel"] {
+    font-family: var(--mono) !important;
+    font-size: 0.6rem !important;
+    letter-spacing: 0.15em !important;
+    text-transform: uppercase !important;
+    color: var(--muted) !important;
+}
+[data-testid="stMetricValue"] {
+    font-family: var(--serif) !important;
+    font-size: 1.8rem !important;
+    color: var(--text) !important;
+    font-weight: 500 !important;
+}
+
+/* ── Tabs ── */
+[data-testid="stTabs"] [role="tablist"] {
+    border-bottom: 1px solid var(--border);
+    gap: 0;
+}
+[data-testid="stTabs"] button[role="tab"] {
+    font-family: var(--mono) !important;
+    font-size: 0.7rem !important;
+    letter-spacing: 0.1em !important;
+    text-transform: uppercase !important;
+    color: var(--muted) !important;
+    padding: 0.7rem 1.2rem !important;
+    border-bottom: 2px solid transparent !important;
+    transition: color .2s, border-color .2s !important;
+}
+[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
+    color: var(--accent) !important;
+    border-bottom-color: var(--accent) !important;
+}
+[data-testid="stTabs"] button[role="tab"]:hover {
+    color: var(--text) !important;
 }
 
 /* ── Link buttons (sources) ── */
@@ -290,29 +447,55 @@ html, body, [class*="css"] {
     background: var(--card) !important;
     color: var(--accent2) !important;
     border: 1px solid var(--border) !important;
-    border-radius: 4px !important;
+    border-radius: 5px !important;
     font-family: var(--mono) !important;
-    font-size: 0.73rem !important;
-    letter-spacing: 0.03em !important;
-    text-transform: none !important;
-    padding: 0.4rem 0.9rem !important;
+    font-size: 0.7rem !important;
+    letter-spacing: 0.04em !important;
+    padding: 0.42rem 0.9rem !important;
     text-align: left !important;
     justify-content: flex-start !important;
+    transition: border-color .2s, background .2s !important;
+    box-shadow: var(--shadow) !important;
 }
 [data-testid="stLinkButton"] > a:hover {
     border-color: var(--accent2) !important;
-    background: rgba(0,229,255,.06) !important;
-    color: var(--accent2) !important;
+    background: rgba(8,145,178,.06) !important;
+}
+@media (prefers-color-scheme: dark) {
+    [data-testid="stLinkButton"] > a:hover {
+        background: rgba(45,212,191,.06) !important;
+    }
+}
+
+/* ── Status box ── */
+[data-testid="stStatusWidget"] {
+    background: var(--card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+}
+
+/* ── Alerts / errors ── */
+[data-testid="stAlert"] {
+    border-radius: var(--radius) !important;
+    font-family: var(--mono) !important;
+    font-size: 0.8rem !important;
 }
 
 /* ── Toast-style notice ── */
 .notice {
     font-family: var(--mono);
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     color: var(--muted);
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
     padding: 0.5rem 0;
+    line-height: 1.6;
 }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
 </style>
 """, unsafe_allow_html=True)
 
@@ -325,6 +508,7 @@ for key, default in {
     "chat_history": [],
     "processing": False,
     "yt_inputs": [""],
+    "removed_pdf_ids": [],
 }.items():
     if key not in st.session_state:
         st.session_state[key] = default
@@ -346,8 +530,6 @@ def extract_link_from_source(citation) -> str:
         if ctype == "YouTube":
             return citation.get("link", "")
         elif ctype == "PDF":
-            # citation["file"] comes from meta.get("file_name") in citation_handler
-            # but actual metadata key is "filename" — so also check raw metadata
             return citation.get("file", "") or citation.get("filename", "")
         return citation.get("link", citation.get("display", str(citation)))
     return str(citation)
@@ -370,7 +552,7 @@ with st.sidebar:
 
     if st.session_state.pipeline_ready:
         st.markdown(
-            '<span class="pill pill-green">● PIPELINE READY</span>',
+            '<span class="pill pill-green">● Pipeline Ready</span>',
             unsafe_allow_html=True,
         )
         s = st.session_state.doc_summary
@@ -402,12 +584,12 @@ with st.sidebar:
             st.rerun()
     else:
         st.markdown(
-            '<span class="pill pill-orange">○ NOT READY</span>',
+            '<span class="pill pill-orange">○ Not Ready</span>',
             unsafe_allow_html=True,
         )
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown(
-            '<div class="notice">Add sources in the main panel and run the pipeline to enable Q&A.</div>',
+            '<div class="notice">Add sources in the main panel and run the pipeline to enable Q&amp;A.</div>',
             unsafe_allow_html=True,
         )
 
@@ -435,8 +617,8 @@ with st.sidebar:
 st.markdown("""
 <div class="hero">
   <div class="hero-badge">Your AI Study Companion</div>
-  <h1>Learn Mate</h1>
-  <p>Multi-source knowledge extraction · PDF &amp; Video · Semantic Q&amp;A</p>
+  <h1><span>Learn</span> Mate</h1>
+  <p>Multi-source · PDF &amp; Video · Semantic Q&amp;A</p>
 </div>
 <div class="divider"></div>
 """, unsafe_allow_html=True)
@@ -461,14 +643,33 @@ with tab_ingest:
             help="Upload one or more PDF files to include in the knowledge base.",
             label_visibility="collapsed",
         )
-        if uploaded_pdfs:
-            for f in uploaded_pdfs:
-                st.markdown(
-                    f'<div class="info-card">📄 <strong>{f.name}</strong>'
-                    f'<span style="float:right;color:var(--muted);font-size:.75rem">'
-                    f'{f.size/1024:.1f} KB</span></div>',
-                    unsafe_allow_html=True,
-                )
+
+        uploaded_pdfs = uploaded_pdfs or []
+        all_pdf_ids = [f"{f.name}:{f.size}" for f in uploaded_pdfs]
+        st.session_state.removed_pdf_ids = [
+            pid for pid in st.session_state.removed_pdf_ids if pid in all_pdf_ids
+        ]
+
+        active_uploaded_pdfs = []
+        for f in uploaded_pdfs:
+            pdf_id = f"{f.name}:{f.size}"
+            if pdf_id not in st.session_state.removed_pdf_ids:
+                active_uploaded_pdfs.append((pdf_id, f))
+
+        if active_uploaded_pdfs:
+            for pdf_id, f in active_uploaded_pdfs:
+                card_col, del_col = st.columns([12, 1], vertical_alignment="center")
+                with card_col:
+                    st.markdown(
+                        f'<div class="info-card">📄 <strong>{f.name}</strong>'
+                        f'<span style="float:right;color:var(--muted);font-family:var(--mono);font-size:.72rem">'
+                        f'{f.size/1024:.1f} KB</span></div>',
+                        unsafe_allow_html=True,
+                    )
+                with del_col:
+                    if st.button("✕", key=f"rm_pdf_{pdf_id}"):
+                        st.session_state.removed_pdf_ids.append(pdf_id)
+                        st.rerun()
 
     # ── YouTube column ────────────────────────────────────────────────────────
     with col_yt:
@@ -498,7 +699,6 @@ with tab_ingest:
             st.session_state.yt_inputs.append("")
             st.rerun()
 
-    st.markdown("<br>", unsafe_allow_html=True)
     st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
     # ── Run pipeline ─────────────────────────────────────────────────────────
@@ -516,10 +716,10 @@ with tab_ingest:
         pdf_paths = []
 
         # Save uploaded PDFs to temp files
-        if uploaded_pdfs:
+        if active_uploaded_pdfs:
             import tempfile, shutil
             tmp_dir = tempfile.mkdtemp()
-            for f in uploaded_pdfs:
+            for _, f in active_uploaded_pdfs:
                 tmp_path = os.path.join(tmp_dir, f.name)
                 with open(tmp_path, "wb") as out:
                     out.write(f.read())
@@ -618,10 +818,7 @@ with tab_qa:
             for entry in st.session_state.chat_history:
                 # User bubble
                 st.markdown(
-                    f'<div style="text-align:right;margin-bottom:.5rem">'
-                    f'<span style="background:rgba(108,99,255,.18);border:1px solid rgba(108,99,255,.3);'
-                    f'border-radius:16px 16px 4px 16px;padding:.45rem 1rem;display:inline-block;'
-                    f'font-size:.88rem;max-width:80%">{entry["question"]}</span></div>',
+                    f'<div class="user-bubble"><span>{entry["question"]}</span></div>',
                     unsafe_allow_html=True,
                 )
                 # Answer
@@ -644,16 +841,12 @@ with tab_qa:
                                 label = label if len(label) <= 70 else label[:67] + "..."
                                 st.link_button(label, link, use_container_width=True)
                             elif stype == "PDF":
-                                # Use fname (from meta["file_name"]) directly — avoids the
-                                # citation_handler "filename" vs "file_name" typo in display
-                                # "file" comes from citation_handler's meta.get("file_name")
-                                # actual key in metadata is "filename" (no underscore)
                                 pdf_label = fname or src.get("filename", "") or src.get("display", "Document")
                                 page = src.get("page", "N/A")
                                 st.markdown(
                                     f'<div class="source-item">'
                                     f'<span class="source-icon">📄</span>'
-                                    f'<span style="font-family:var(--mono);font-size:.75rem;color:var(--text)">'
+                                    f'<span style="font-family:var(--mono);font-size:.72rem;color:var(--text)">'
                                     f'{pdf_label} — Page {page}</span>'
                                     f'</div>',
                                     unsafe_allow_html=True,
@@ -662,7 +855,7 @@ with tab_qa:
                                 st.markdown(
                                     f'<div class="source-item">'
                                     f'<span class="source-icon">🔗</span>'
-                                    f'<span style="font-family:var(--mono);font-size:.75rem;color:var(--muted)">{display}</span>'
+                                    f'<span style="font-family:var(--mono);font-size:.72rem;color:var(--muted)">{display}</span>'
                                     f'</div>',
                                     unsafe_allow_html=True,
                                 )
@@ -696,8 +889,6 @@ with tab_qa:
                     )
                     citations = format_citations(sources)
 
-                    # Build source list directly from retrieved_docs metadata
-                    # avoids citation_handler key typos entirely
                     links = []
                     for doc in sources:
                         meta = doc.get("metadata", {})
@@ -729,7 +920,6 @@ with tab_qa:
                             })
                     links = links[:3]
 
-                    # Hide sources if LLM couldn't find answer in context
                     cant_answer = "i don't have enough information" in answer.lower()
                     st.session_state.chat_history.append({
                         "question": question.strip(),
