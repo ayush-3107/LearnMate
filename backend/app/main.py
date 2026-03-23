@@ -36,10 +36,15 @@ for key, default in {
     "processing": False,
     "yt_inputs": [""],
     "removed_pdf_ids": [],
-    "theme": "light",          # NEW — track current theme
+    "theme": "dark",           # default to dark on first launch
+    "theme_user_set": False,    # track whether user explicitly changed theme
 }.items():
     if key not in st.session_state:
         st.session_state[key] = default
+
+# Enforce dark on launch until the user explicitly toggles theme.
+if not st.session_state.theme_user_set:
+    st.session_state.theme = "dark"
 
 # ── Theme toggle handler ───────────────────────────────────────────────────────
 # We read a query-param trick: Streamlit reruns on button click, so we just
@@ -48,18 +53,19 @@ _is_dark = st.session_state.theme == "dark"
 
 if st.button("☀ Light" if _is_dark else "🌙 Dark", key="theme_switch", help="Toggle theme"):
     st.session_state.theme = "light" if _is_dark else "dark"
+    st.session_state.theme_user_set = True
     st.rerun()
 
 theme_tokens = {
-    "bg": "#0b1220" if _is_dark else "#ffffff",
-    "surface": "#111a2d" if _is_dark else "#f8f9fa",
-    "card": "#17243a" if _is_dark else "#f1f3f5",
-    "border": "#2a3a56" if _is_dark else "#dee2e6",
-    "accent": "#6ea8ff" if _is_dark else "#2563eb",
+    "bg": "#0a1222" if _is_dark else "#f7f9fc",
+    "surface": "#101d33" if _is_dark else "#eef3f8",
+    "card": "#152641" if _is_dark else "#ffffff",
+    "border": "#2b4167" if _is_dark else "#d6dee8",
+    "accent": "#78b2ff" if _is_dark else "#2563eb",
     "accent2": "#38d6c3" if _is_dark else "#0891b2",
     "accent3": "#c4a7ff" if _is_dark else "#7c3aed",
-    "text": "#eaf1ff" if _is_dark else "#111827",
-    "muted": "#a3b2cc" if _is_dark else "#6b7280",
+    "text": "#ebf3ff" if _is_dark else "#111827",
+    "muted": "#a2b5d3" if _is_dark else "#667085",
     "success": "#4ade80" if _is_dark else "#059669",
     "warning": "#fbbf24" if _is_dark else "#d97706",
     "shadow": "0 1px 3px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.3)" if _is_dark else "0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05)",
@@ -77,6 +83,7 @@ theme_tokens = {
     "btn_shadow": "0 3px 12px rgba(110,168,255,.28)" if _is_dark else "0 2px 8px rgba(37,99,235,.25)",
     "btn_shadow_hover": "0 6px 18px rgba(110,168,255,.38)" if _is_dark else "0 4px 14px rgba(37,99,235,.35)",
     "toggle_shadow": "0 3px 12px rgba(3,8,20,.65)" if _is_dark else "0 2px 10px rgba(0,0,0,.1)",
+    "color_scheme": "dark" if _is_dark else "light",
 }
 
 # ── Custom CSS ─────────────────────────────────────────────────────────────────
@@ -122,6 +129,12 @@ html, body, [class*="css"] {
     font-family: var(--serif);
     background-color: var(--bg) !important;
     color: var(--text);
+}
+
+/* Prevent browser/system appearance from overriding native controls */
+html, body, [data-testid="stAppViewContainer"], [data-testid="stSidebar"],
+input, textarea, select, button {
+    color-scheme: var(--color-scheme, light) !important;
 }
 
 [data-testid="stAppViewContainer"] {
@@ -226,9 +239,13 @@ html, body, [class*="css"] {
     margin-bottom: 0.5rem;
     font-size: 0.84rem;
     box-shadow: var(--shadow);
-    transition: border-color 0.2s;
+    color: var(--text);
+    transition: border-color 0.2s, transform 0.12s;
 }
-.info-card:hover { border-color: var(--accent); }
+.info-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+}
 .info-card .label {
     font-family: var(--mono);
     font-size: 0.58rem;
@@ -253,14 +270,14 @@ html, body, [class*="css"] {
 }
 .pill-green  { background: var(--pill-green-bg);  color: var(--success); border: 1px solid var(--pill-green-border); }
 .pill-blue   { background: var(--pill-blue-bg);   color: var(--accent);  border: 1px solid var(--pill-blue-border); }
-.pill-orange { background: var(--pill-orange-bg); color: var(--warning); border: 1px solid var(--pill-orange-border); }
+.pill-orange { background: var(--pill-orange-bg); color: var(--warning); }
 .pill-pink   { background: var(--pill-pink-bg);   color: var(--accent3); border: 1px solid var(--pill-pink-border); }
 
 /* ── Answer box ── */
 .answer-box {
     background: var(--card);
     border: 1px solid var(--border);
-    border-left: 3px solid var(--accent);
+    border-top: 3px solid var(--accent);
     border-radius: var(--radius);
     padding: 1.3rem 1.5rem;
     font-size: 0.95rem;
@@ -364,6 +381,12 @@ html, body, [class*="css"] {
     outline: none !important;
 }
 
+.stTextInput > div > div > input::placeholder,
+.stTextArea > div > div > textarea::placeholder {
+    color: var(--muted) !important;
+    opacity: 0.92 !important;
+}
+
 /* ── Buttons ── */
 .stButton > button {
     background: var(--accent) !important;
@@ -416,11 +439,28 @@ button[kind="secondary"],
     background: var(--card);
     border: 1.5px dashed var(--border);
     border-radius: var(--radius);
-    padding: 0.5rem;
+    padding: 0.6rem;
     transition: border-color .2s;
+    box-shadow: var(--shadow);
 }
 [data-testid="stFileUploader"]:hover { border-color: var(--accent2); }
 [data-testid="stFileUploaderFile"] { display: none !important; }
+[data-testid="stFileUploaderDropzone"] {
+    background: var(--card) !important;
+    border: 1px dashed var(--border) !important;
+}
+[data-testid="stFileUploaderDropzone"] * {
+    color: var(--text) !important;
+}
+[data-testid="stFileUploaderDropzone"] small,
+[data-testid="stFileUploaderDropzoneInstructions"] {
+    color: var(--muted) !important;
+}
+[data-testid="stFileUploaderDropzone"] [data-testid="stBaseButton-secondary"] {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+}
 
 /* ── Expander ── */
 [data-testid="stExpander"] {
@@ -438,6 +478,19 @@ button[kind="secondary"],
 
 /* ── Progress / spinner ── */
 .stProgress > div > div > div { background: var(--accent) !important; }
+.stProgress > div > div {
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 999px !important;
+    padding: 1px !important;
+}
+[data-testid="stProgress"] [data-testid="stMarkdownContainer"],
+[data-testid="stProgress"] p,
+[data-testid="stProgress"] span {
+    color: var(--text) !important;
+    opacity: 1 !important;
+    font-family: var(--mono) !important;
+}
 
 /* ── Metric ── */
 [data-testid="stMetric"] {
@@ -473,14 +526,17 @@ button[kind="secondary"],
     text-transform: uppercase !important;
     color: var(--muted) !important;
     padding: 0.7rem 1.2rem !important;
-    border-bottom: 2px solid transparent !important;
-    transition: color .2s, border-color .2s !important;
+    border-bottom: none !important;
+    transition: color .2s !important;
 }
 [data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
     color: var(--accent) !important;
-    border-bottom-color: var(--accent) !important;
 }
 [data-testid="stTabs"] button[role="tab"]:hover { color: var(--text) !important; }
+[data-testid="stTabs"] [data-baseweb="tab-highlight"] {
+    background: var(--accent) !important;
+    height: 3px !important;
+}
 
 /* ── Link buttons ── */
 [data-testid="stLinkButton"] > a {
@@ -504,9 +560,27 @@ button[kind="secondary"],
 
 /* ── Status box ── */
 [data-testid="stStatusWidget"] {
-    background: var(--card) !important;
+    background: linear-gradient(180deg, var(--card), var(--surface)) !important;
     border: 1px solid var(--border) !important;
     border-radius: var(--radius) !important;
+    box-shadow: var(--shadow-lg) !important;
+}
+[data-testid="stStatusWidget"],
+[data-testid="stStatusWidget"] * {
+    color: var(--text) !important;
+    opacity: 1 !important;
+}
+[data-testid="stStatusWidget"] [data-testid="stStatusWidgetLabel"] {
+    font-family: var(--mono) !important;
+    letter-spacing: 0.05em !important;
+}
+[data-testid="stStatusWidget"] [data-testid="stMarkdownContainer"],
+[data-testid="stStatusWidget"] [data-testid="stMarkdownContainer"] p,
+[data-testid="stStatusWidget"] [data-testid="stMarkdownContainer"] li,
+[data-testid="stStatusWidget"] [data-testid="stMarkdownContainer"] span,
+[data-testid="stStatusWidget"] [data-testid="stMarkdownContainer"] div {
+    color: var(--text) !important;
+    opacity: 1 !important;
 }
 
 /* ── Alerts ── */
@@ -519,11 +593,49 @@ button[kind="secondary"],
 /* ── Notice ── */
 .notice {
     font-family: var(--mono);
-    font-size: 0.68rem;
+    font-size: 0.7rem;
     color: var(--muted);
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
     padding: 0.5rem 0;
-    line-height: 1.6;
+    line-height: 1.7;
+}
+
+/* ── Pipeline status readability ── */
+.status-line {
+    color: var(--text) !important;
+    font-family: var(--mono) !important;
+    font-size: 0.8rem !important;
+    line-height: 1.7 !important;
+    letter-spacing: 0.01em;
+    opacity: 1 !important;
+}
+.status-line-ok {
+    color: var(--accent2) !important;
+    font-weight: 600;
+}
+
+[data-testid="stProgress"] p,
+[data-testid="stProgress"] span,
+[data-testid="stProgress"] div,
+.stProgress p,
+.stProgress span,
+.stProgress div {
+    color: var(--text) !important;
+    opacity: 1 !important;
+    font-family: var(--mono) !important;
+    font-size: 0.78rem !important;
+}
+
+[data-testid="stStatusWidget"] p,
+[data-testid="stStatusWidget"] span,
+[data-testid="stStatusWidget"] li,
+[data-testid="stStatusWidget"] div,
+[data-testid="stStatusWidget"] label,
+[data-testid="stStatusWidget"] small,
+[data-testid="stStatusWidget"] [style*="opacity"],
+[data-testid="stStatusWidget"] [style*="color"] {
+    color: var(--text) !important;
+    opacity: 1 !important;
 }
 
 /* ── Scrollbar ── */
@@ -534,10 +646,9 @@ button[kind="secondary"],
 
 /* ── Theme toggle button styling ── */
 .st-key-theme_switch {
-    position: fixed;
-    top: 14px;
-    right: 18px;
-    z-index: 99999;
+    display: inline-block;
+    float: right;
+    margin: 0 !important;
 }
 
 .st-key-theme_switch > div {
@@ -575,6 +686,7 @@ button[kind="secondary"],
 st.markdown(f"""
 <style>
 :root {{
+    --color-scheme: {theme_tokens['color_scheme']};
     --bg: {theme_tokens['bg']};
     --surface: {theme_tokens['surface']};
     --card: {theme_tokens['card']};
@@ -592,8 +704,8 @@ st.markdown(f"""
     --pill-green-border: {theme_tokens['pill_green_border']};
     --pill-blue-bg: {theme_tokens['pill_blue_bg']};
     --pill-blue-border: {theme_tokens['pill_blue_border']};
-    --pill-orange-bg: {theme_tokens['pill_orange_bg']};
-    --pill-orange-border: {theme_tokens['pill_orange_border']};
+    # --pill-orange-bg: {theme_tokens['pill_orange_bg']};
+    # --pill-orange-border: {theme_tokens['pill_orange_border']};
     --pill-pink-bg: {theme_tokens['pill_pink_bg']};
     --pill-pink-border: {theme_tokens['pill_pink_border']};
     --input-focus-shadow: {theme_tokens['input_focus_shadow']};
@@ -672,7 +784,7 @@ with st.sidebar:
             st.rerun()
     else:
         st.markdown(
-            '<span class="pill pill-orange">○ Not Ready</span>',
+            '<span class="pill pill-blue">○ Not Ready</span>',
             unsafe_allow_html=True,
         )
         st.markdown("<br>", unsafe_allow_html=True)
@@ -745,7 +857,7 @@ with tab_ingest:
                 active_uploaded_pdfs.append((pdf_id, f))
 
         if active_uploaded_pdfs:
-            for pdf_id, f in active_uploaded_pdfs:
+            for idx, (pdf_id, f) in enumerate(active_uploaded_pdfs):
                 card_col, del_col = st.columns([12, 1], vertical_alignment="center")
                 with card_col:
                     st.markdown(
@@ -755,7 +867,7 @@ with tab_ingest:
                         unsafe_allow_html=True,
                     )
                 with del_col:
-                    if st.button("✕", key=f"rm_pdf_{pdf_id}"):
+                    if st.button("✕", key=f"rm_pdf_{idx}"):
                         st.session_state.removed_pdf_ids.append(pdf_id)
                         st.rerun()
 
@@ -825,7 +937,7 @@ with tab_ingest:
 
                 with st.status("Running pipeline…", expanded=True) as status:
 
-                    st.write("📥 Loading sources — may take a moment for YouTube videos…")
+                    st.markdown('<div class="status-line">📥 Loading sources - may take a moment for YouTube videos...</div>', unsafe_allow_html=True)
                     progress_bar.progress(5, text="📥  Loading sources…")
                     manager = DocumentManager()
                     documents = manager.load_all_sources(
@@ -833,7 +945,10 @@ with tab_ingest:
                         youtube_urls=yt_urls,
                     )
                     progress_bar.progress(20, text="📥  Sources loaded!")
-                    st.write(f"✅ Loaded {len(documents)} document(s)")
+                    st.markdown(
+                        f'<div class="status-line status-line-ok">✅ Loaded {len(documents)} document(s)</div>',
+                        unsafe_allow_html=True,
+                    )
 
                     if not documents:
                         status.update(label="❌ No documents loaded", state="error")
@@ -842,24 +957,30 @@ with tab_ingest:
 
                     raw_summary = manager.summarize(documents)
 
-                    st.write("🧹 Cleaning and normalising text…")
+                    st.markdown('<div class="status-line">🧹 Cleaning and normalising text...</div>', unsafe_allow_html=True)
                     progress_bar.progress(30, text="🧹  Cleaning text…")
                     clean_docs = clean_documents(documents)
                     progress_bar.progress(45, text="🧹  Text cleaned!")
-                    st.write("✅ Text cleaned")
+                    st.markdown('<div class="status-line status-line-ok">✅ Text cleaned</div>', unsafe_allow_html=True)
 
-                    st.write("✂️ Chunking documents…")
+                    st.markdown('<div class="status-line">✂️ Chunking documents...</div>', unsafe_allow_html=True)
                     progress_bar.progress(50, text="✂️  Chunking…")
                     chunks = chunk_documents(clean_docs)
                     progress_bar.progress(62, text=f"✂️  {len(chunks)} chunks created!")
-                    st.write(f"✅ Created {len(chunks)} chunks")
+                    st.markdown(
+                        f'<div class="status-line status-line-ok">✅ Created {len(chunks)} chunks</div>',
+                        unsafe_allow_html=True,
+                    )
 
-                    st.write("🧠 Generating embeddings — this is the slow step…")
+                    st.markdown('<div class="status-line">🧠 Generating embeddings - this is the slow step...</div>', unsafe_allow_html=True)
                     progress_bar.progress(65, text="🧠  Embedding…")
                     embedding_model = EmbeddingModel()
                     embedded_docs = embedding_model.embed_documents(chunks)
                     progress_bar.progress(95, text="🧠  Embeddings ready!")
-                    st.write(f"✅ Embedded {len(embedded_docs)} documents")
+                    st.markdown(
+                        f'<div class="status-line status-line-ok">✅ Embedded {len(embedded_docs)} documents</div>',
+                        unsafe_allow_html=True,
+                    )
 
                     progress_bar.progress(100, text="✅  Pipeline complete!")
                     status.update(label="✅ Pipeline complete — go to Ask Questions tab!", state="complete", expanded=False)
@@ -888,7 +1009,7 @@ with tab_ingest:
 with tab_qa:
     if not st.session_state.pipeline_ready:
         st.markdown(
-            '<div class="answer-box" style="border-left-color:var(--warning);text-align:center;color:var(--muted)">'
+            '<div class="answer-box" style="border-top-color:var(--accent2);text-align:center;color:var(--muted)">'
             'Pipeline not ready. Add sources and run ingest first.'
             '</div>',
             unsafe_allow_html=True,
