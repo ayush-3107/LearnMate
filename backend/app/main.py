@@ -47,8 +47,6 @@ if not st.session_state.theme_user_set:
     st.session_state.theme = "dark"
 
 # ── Theme toggle handler ───────────────────────────────────────────────────────
-# We read a query-param trick: Streamlit reruns on button click, so we just
-# flip the session-state value and re-inject the CSS variable block.
 _is_dark = st.session_state.theme == "dark"
 
 if st.button("☀ Light" if _is_dark else "🌙 Dark", key="theme_switch", help="Toggle theme"):
@@ -57,41 +55,83 @@ if st.button("☀ Light" if _is_dark else "🌙 Dark", key="theme_switch", help=
     st.rerun()
 
 theme_tokens = {
-    "bg": "#0a1222" if _is_dark else "#f7f9fc",
-    "surface": "#101d33" if _is_dark else "#eef3f8",
-    "card": "#152641" if _is_dark else "#ffffff",
-    "border": "#2b4167" if _is_dark else "#d6dee8",
-    "accent": "#78b2ff" if _is_dark else "#2563eb",
-    "accent2": "#38d6c3" if _is_dark else "#0891b2",
-    "accent3": "#c4a7ff" if _is_dark else "#7c3aed",
-    "text": "#ebf3ff" if _is_dark else "#111827",
-    "muted": "#a2b5d3" if _is_dark else "#667085",
-    "success": "#4ade80" if _is_dark else "#059669",
-    "warning": "#fbbf24" if _is_dark else "#d97706",
-    "shadow": "0 1px 3px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.3)" if _is_dark else "0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05)",
-    "shadow_lg": "0 4px 16px rgba(0,0,0,.5), 0 2px 4px rgba(0,0,0,.4)" if _is_dark else "0 4px 16px rgba(0,0,0,.1), 0 2px 4px rgba(0,0,0,.06)",
-    "pill_green_bg": "rgba(52,211,153,.1)" if _is_dark else "rgba(5,150,105,.08)",
-    "pill_green_border": "rgba(52,211,153,.25)" if _is_dark else "rgba(5,150,105,.2)",
-    "pill_blue_bg": "rgba(59,130,246,.1)" if _is_dark else "rgba(37,99,235,.08)",
-    "pill_blue_border": "rgba(59,130,246,.25)" if _is_dark else "rgba(37,99,235,.2)",
-    "pill_orange_bg": "rgba(251,191,36,.1)" if _is_dark else "rgba(217,119,6,.08)",
-    "pill_orange_border": "rgba(251,191,36,.25)" if _is_dark else "rgba(217,119,6,.2)",
-    "pill_pink_bg": "rgba(167,139,250,.1)" if _is_dark else "rgba(124,58,237,.08)",
-    "pill_pink_border": "rgba(167,139,250,.25)" if _is_dark else "rgba(124,58,237,.2)",
-    "input_focus_shadow": "0 0 0 3px rgba(110,168,255,.22)" if _is_dark else "0 0 0 3px rgba(37,99,235,.12)",
-    "link_hover_bg": "rgba(45,212,191,.06)" if _is_dark else "rgba(8,145,178,.06)",
-    "btn_shadow": "0 3px 12px rgba(110,168,255,.28)" if _is_dark else "0 2px 8px rgba(37,99,235,.25)",
-    "btn_shadow_hover": "0 6px 18px rgba(110,168,255,.38)" if _is_dark else "0 4px 14px rgba(37,99,235,.35)",
-    "toggle_shadow": "0 3px 12px rgba(3,8,20,.65)" if _is_dark else "0 2px 10px rgba(0,0,0,.1)",
-    "color_scheme": "dark" if _is_dark else "light",
+    # Dark mode: true black base, dark gray surfaces, white text
+    # Light mode: clean white base, light gray surfaces, near-black text
+    "bg":        "#000000" if _is_dark else "#f7f9fc",
+    "surface":   "#111111" if _is_dark else "#eef3f8",
+    "card":      "#1a1a1a" if _is_dark else "#ffffff",
+    "border":    "#2e2e2e" if _is_dark else "#d6dee8",
+    "accent":    "#78b2ff" if _is_dark else "#2563eb",
+    "accent2":   "#38d6c3" if _is_dark else "#0891b2",
+    "accent3":   "#c4a7ff" if _is_dark else "#7c3aed",
+    "text":      "#f5f5f5" if _is_dark else "#111827",
+    "muted":     "#888888" if _is_dark else "#667085",
+    "success":   "#4ade80" if _is_dark else "#059669",
+    "warning":   "#fbbf24" if _is_dark else "#d97706",
+    "shadow":    "0 1px 3px rgba(0,0,0,.8), 0 1px 2px rgba(0,0,0,.6)" if _is_dark else "0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05)",
+    "shadow_lg": "0 4px 16px rgba(0,0,0,.9), 0 2px 4px rgba(0,0,0,.7)" if _is_dark else "0 4px 16px rgba(0,0,0,.1), 0 2px 4px rgba(0,0,0,.06)",
+    "pill_green_bg":     "rgba(74,222,128,.1)"   if _is_dark else "rgba(5,150,105,.08)",
+    "pill_green_border": "rgba(74,222,128,.3)"   if _is_dark else "rgba(5,150,105,.2)",
+    "pill_blue_bg":      "rgba(120,178,255,.1)"  if _is_dark else "rgba(37,99,235,.08)",
+    "pill_blue_border":  "rgba(120,178,255,.3)"  if _is_dark else "rgba(37,99,235,.2)",
+    "pill_orange_bg":    "rgba(251,191,36,.1)"   if _is_dark else "rgba(217,119,6,.08)",
+    "pill_orange_border":"rgba(251,191,36,.3)"   if _is_dark else "rgba(217,119,6,.2)",
+    "pill_pink_bg":      "rgba(196,167,255,.1)"  if _is_dark else "rgba(124,58,237,.08)",
+    "pill_pink_border":  "rgba(196,167,255,.3)"  if _is_dark else "rgba(124,58,237,.2)",
+    "input_focus_shadow":"0 0 0 3px rgba(120,178,255,.25)" if _is_dark else "0 0 0 3px rgba(37,99,235,.12)",
+    "link_hover_bg":     "rgba(56,214,195,.06)"  if _is_dark else "rgba(8,145,178,.06)",
+    "btn_shadow":        "0 3px 12px rgba(0,0,0,.6)"  if _is_dark else "0 2px 8px rgba(37,99,235,.25)",
+    "btn_shadow_hover":  "0 6px 18px rgba(0,0,0,.8)"  if _is_dark else "0 4px 14px rgba(37,99,235,.35)",
+    "toggle_shadow":     "0 3px 12px rgba(0,0,0,.9)"  if _is_dark else "0 2px 10px rgba(0,0,0,.1)",
+    "color_scheme":      "dark" if _is_dark else "light",
 }
 
 # ── Custom CSS ─────────────────────────────────────────────────────────────────
+# ── Load fonts locally (fallback: try Google, then system fonts) ───────────────
+import base64, pathlib
+
+def _load_local_fonts() -> str:
+    """Return @font-face CSS if local woff2 files exist, else empty string."""
+    font_dir = pathlib.Path(__file__).parent.parent / "static" / "fonts"
+    if not font_dir.exists():
+        return ""
+    faces = []
+    specs = [
+        ("poppins-300.woff2", "Poppins", "normal", 300),
+        ("poppins-400.woff2", "Poppins", "normal", 400),
+        ("poppins-500.woff2", "Poppins", "normal", 500),
+        ("poppins-600.woff2", "Poppins", "normal", 600),
+        ("poppins-700.woff2", "Poppins", "normal", 700),
+    ]
+    for fname, family, style, weight in specs:
+        p = font_dir / fname
+        if p.exists():
+            b64 = base64.b64encode(p.read_bytes()).decode()
+            faces.append(
+                f"@font-face{{font-family:'{family}';font-style:{style};"
+                f"font-weight:{weight};"
+                f"src:url('data:font/woff2;base64,{b64}') format('woff2');}}"
+            )
+    return "\n".join(faces)
+
+_local_fonts_css = _load_local_fonts()
+_google_fonts_import = (
+    ""
+    if _local_fonts_css
+    else "@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');"
+)
+
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;1,9..144,300&display=swap');
+""" + _google_fonts_import + """
+""" + _local_fonts_css + """
 
 /* ── Color tokens (Python-driven theme state) ── */
+/* Font fallbacks if woff2 not loaded yet */
+:root {
+    --serif-stack: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --mono-stack:  'Courier New', Courier, monospace;
+}
 :root {
     --bg:        #ffffff;
     --surface:   #f8f9fa;
@@ -104,8 +144,8 @@ st.markdown("""
     --muted:     #6b7280;
     --success:   #059669;
     --warning:   #d97706;
-    --mono:      'IBM Plex Mono', monospace;
-    --serif:     'Fraunces', serif;
+    --mono:      'Courier New', Courier, monospace;
+    --serif:     'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     --shadow:    0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
     --shadow-lg: 0 4px 16px rgba(0,0,0,.1), 0 2px 4px rgba(0,0,0,.06);
     --radius:    8px;
@@ -131,16 +171,27 @@ html, body, [class*="css"] {
     color: var(--text);
 }
 
-/* Prevent browser/system appearance from overriding native controls */
+/* Force Streamlit's own containers to respect black — its built-in
+   dark theme uses navy and will bleed through without these overrides */
+[data-testid="stApp"],
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"],
+[data-testid="stMainBlockContainer"],
+section[data-testid="stSidebar"] > div,
+.main, .main > div {
+    background-color: var(--bg) !important;
+}
+
+/* FIX 3: Removed broken color-scheme: var(--color-scheme) line.
+   color-scheme is now injected as a literal value in the dynamic
+   f-string block below, which correctly sets it per theme. */
 html, body, [data-testid="stAppViewContainer"], [data-testid="stSidebar"],
 input, textarea, select, button {
-    color-scheme: var(--color-scheme, light) !important;
+    /* color-scheme is set dynamically below */
 }
 
 [data-testid="stAppViewContainer"] {
-    background: radial-gradient(1200px 650px at 80% -10%, rgba(56,214,195,.08), transparent 55%),
-                radial-gradient(1000px 520px at -15% 5%, rgba(110,168,255,.12), transparent 50%),
-                var(--bg) !important;
+    background: var(--bg) !important;
 }
 
 /* ── Hide Streamlit chrome ── */
@@ -156,7 +207,8 @@ input, textarea, select, button {
 }
 
 /* ── Sidebar ── */
-[data-testid="stSidebar"] {
+[data-testid="stSidebar"],
+[data-testid="stSidebar"] > div:first-child {
     background: var(--surface) !important;
     border-right: 1px solid var(--border) !important;
 }
@@ -452,7 +504,7 @@ button[kind="secondary"],
 [data-testid="stFileUploaderDropzone"] * {
     color: var(--text) !important;
 }
-[data-testid="stFileUploaderDropzone"] small,
+[data-testida="stFileUploaderDropzone"] small,
 [data-testid="stFileUploaderDropzoneInstructions"] {
     color: var(--muted) !important;
 }
@@ -683,10 +735,14 @@ button[kind="secondary"],
 </style>
 """, unsafe_allow_html=True)
 
+# ── FIX 1: Removed # comments from inside f-string (they were rendered as
+#    invalid CSS and caused the entire :root block to partially fail).
+# ── FIX 2: Added color-scheme as a real CSS literal property so native
+#    controls (inputs, scrollbars) correctly respond to the theme on Windows.
 st.markdown(f"""
 <style>
 :root {{
-    --color-scheme: {theme_tokens['color_scheme']};
+    color-scheme: {theme_tokens['color_scheme']};
     --bg: {theme_tokens['bg']};
     --surface: {theme_tokens['surface']};
     --card: {theme_tokens['card']};
@@ -704,8 +760,8 @@ st.markdown(f"""
     --pill-green-border: {theme_tokens['pill_green_border']};
     --pill-blue-bg: {theme_tokens['pill_blue_bg']};
     --pill-blue-border: {theme_tokens['pill_blue_border']};
-    # --pill-orange-bg: {theme_tokens['pill_orange_bg']};
-    # --pill-orange-border: {theme_tokens['pill_orange_border']};
+    --pill-orange-bg: {theme_tokens['pill_orange_bg']};
+    --pill-orange-border: {theme_tokens['pill_orange_border']};
     --pill-pink-bg: {theme_tokens['pill_pink_bg']};
     --pill-pink-border: {theme_tokens['pill_pink_border']};
     --input-focus-shadow: {theme_tokens['input_focus_shadow']};
