@@ -27,101 +27,253 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# ── Session State ──────────────────────────────────────────────────────────────
+for key, default in {
+    "pipeline_ready": False,
+    "embedded_docs": None,
+    "doc_summary": {},
+    "chat_history": [],
+    "processing": False,
+    "yt_inputs": [""],
+    "removed_pdf_ids": [],
+    "theme": "dark",           # default to dark on first launch
+    "theme_user_set": False,    # track whether user explicitly changed theme
+}.items():
+    if key not in st.session_state:
+        st.session_state[key] = default
+
+# Enforce dark on launch until the user explicitly toggles theme.
+if not st.session_state.theme_user_set:
+    st.session_state.theme = "dark"
+
+# ── Theme toggle handler ───────────────────────────────────────────────────────
+_is_dark = st.session_state.theme == "dark"
+
+if st.button("☀ Light" if _is_dark else "🌙 Dark", key="theme_switch", help="Toggle theme"):
+    st.session_state.theme = "light" if _is_dark else "dark"
+    st.session_state.theme_user_set = True
+    st.rerun()
+
+theme_tokens = {
+    # Dark mode: true black base, dark gray surfaces, white text
+    # Light mode: clean white base, light gray surfaces, near-black text
+    "bg":        "#000000" if _is_dark else "#f7f9fc",
+    "surface":   "#111111" if _is_dark else "#eef3f8",
+    "card":      "#1a1a1a" if _is_dark else "#ffffff",
+    "border":    "#2e2e2e" if _is_dark else "#d6dee8",
+    "accent":    "#78b2ff" if _is_dark else "#2563eb",
+    "accent2":   "#38d6c3" if _is_dark else "#0891b2",
+    "accent3":   "#c4a7ff" if _is_dark else "#7c3aed",
+    "text":      "#f5f5f5" if _is_dark else "#111827",
+    "muted":     "#888888" if _is_dark else "#667085",
+    "success":   "#4ade80" if _is_dark else "#059669",
+    "warning":   "#fbbf24" if _is_dark else "#d97706",
+    "shadow":    "0 1px 3px rgba(0,0,0,.8), 0 1px 2px rgba(0,0,0,.6)" if _is_dark else "0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05)",
+    "shadow_lg": "0 4px 16px rgba(0,0,0,.9), 0 2px 4px rgba(0,0,0,.7)" if _is_dark else "0 4px 16px rgba(0,0,0,.1), 0 2px 4px rgba(0,0,0,.06)",
+    "pill_green_bg":     "rgba(74,222,128,.1)"   if _is_dark else "rgba(5,150,105,.08)",
+    "pill_green_border": "rgba(74,222,128,.3)"   if _is_dark else "rgba(5,150,105,.2)",
+    "pill_blue_bg":      "rgba(120,178,255,.1)"  if _is_dark else "rgba(37,99,235,.08)",
+    "pill_blue_border":  "rgba(120,178,255,.3)"  if _is_dark else "rgba(37,99,235,.2)",
+    "pill_orange_bg":    "rgba(251,191,36,.1)"   if _is_dark else "rgba(217,119,6,.08)",
+    "pill_orange_border":"rgba(251,191,36,.3)"   if _is_dark else "rgba(217,119,6,.2)",
+    "pill_pink_bg":      "rgba(196,167,255,.1)"  if _is_dark else "rgba(124,58,237,.08)",
+    "pill_pink_border":  "rgba(196,167,255,.3)"  if _is_dark else "rgba(124,58,237,.2)",
+    "input_focus_shadow":"0 0 0 3px rgba(120,178,255,.25)" if _is_dark else "0 0 0 3px rgba(37,99,235,.12)",
+    "link_hover_bg":     "rgba(56,214,195,.06)"  if _is_dark else "rgba(8,145,178,.06)",
+    "btn_shadow":        "0 3px 12px rgba(0,0,0,.6)"  if _is_dark else "0 2px 8px rgba(37,99,235,.25)",
+    "btn_shadow_hover":  "0 6px 18px rgba(0,0,0,.8)"  if _is_dark else "0 4px 14px rgba(37,99,235,.35)",
+    "toggle_shadow":     "0 3px 12px rgba(0,0,0,.9)"  if _is_dark else "0 2px 10px rgba(0,0,0,.1)",
+    "color_scheme":      "dark" if _is_dark else "light",
+}
+
 # ── Custom CSS ─────────────────────────────────────────────────────────────────
+# ── Load fonts locally (fallback: try Google, then system fonts) ───────────────
+import base64, pathlib
+
+def _load_local_fonts() -> str:
+    """Return @font-face CSS if local woff2 files exist, else empty string."""
+    font_dir = pathlib.Path(__file__).parent.parent / "static" / "fonts"
+    if not font_dir.exists():
+        return ""
+    faces = []
+    specs = [
+        ("poppins-300.woff2", "Poppins", "normal", 300),
+        ("poppins-400.woff2", "Poppins", "normal", 400),
+        ("poppins-500.woff2", "Poppins", "normal", 500),
+        ("poppins-600.woff2", "Poppins", "normal", 600),
+        ("poppins-700.woff2", "Poppins", "normal", 700),
+    ]
+    for fname, family, style, weight in specs:
+        p = font_dir / fname
+        if p.exists():
+            b64 = base64.b64encode(p.read_bytes()).decode()
+            faces.append(
+                f"@font-face{{font-family:'{family}';font-style:{style};"
+                f"font-weight:{weight};"
+                f"src:url('data:font/woff2;base64,{b64}') format('woff2');}}"
+            )
+    return "\n".join(faces)
+
+_local_fonts_css = _load_local_fonts()
+_google_fonts_import = (
+    ""
+    if _local_fonts_css
+    else "@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');"
+)
+
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+""" + _google_fonts_import + """
+""" + _local_fonts_css + """
 
-/* ── Root Variables ── */
+/* ── Color tokens (Python-driven theme state) ── */
+/* Font fallbacks if woff2 not loaded yet */
 :root {
-    --bg:        #0a0a0f;
-    --surface:   #111118;
-    --card:      #16161f;
-    --border:    #2a2a3a;
-    --accent:    #6c63ff;
-    --accent2:   #00e5ff;
-    --accent3:   #ff6b9d;
-    --text:      #e8e8f0;
-    --muted:     #6b6b80;
-    --success:   #00c896;
-    --warning:   #ffb347;
-    --mono:      'Space Mono', monospace;
-    --sans:      'DM Sans', sans-serif;
+    --serif-stack: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --mono-stack:  'Courier New', Courier, monospace;
+}
+:root {
+    --bg:        #ffffff;
+    --surface:   #f8f9fa;
+    --card:      #f1f3f5;
+    --border:    #dee2e6;
+    --accent:    #2563eb;
+    --accent2:   #0891b2;
+    --accent3:   #7c3aed;
+    --text:      #111827;
+    --muted:     #6b7280;
+    --success:   #059669;
+    --warning:   #d97706;
+    --mono:      'Courier New', Courier, monospace;
+    --serif:     'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --shadow:    0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+    --shadow-lg: 0 4px 16px rgba(0,0,0,.1), 0 2px 4px rgba(0,0,0,.06);
+    --radius:    8px;
+    --pill-green-bg: rgba(5,150,105,.08);
+    --pill-green-border: rgba(5,150,105,.2);
+    --pill-blue-bg: rgba(37,99,235,.08);
+    --pill-blue-border: rgba(37,99,235,.2);
+    --pill-orange-bg: rgba(217,119,6,.08);
+    --pill-orange-border: rgba(217,119,6,.2);
+    --pill-pink-bg: rgba(124,58,237,.08);
+    --pill-pink-border: rgba(124,58,237,.2);
+    --input-focus-shadow: 0 0 0 3px rgba(37,99,235,.12);
+    --link-hover-bg: rgba(8,145,178,.06);
+    --btn-shadow: 0 2px 8px rgba(37,99,235,.25);
+    --btn-shadow-hover: 0 4px 14px rgba(37,99,235,.35);
+    --toggle-shadow: 0 2px 10px rgba(0,0,0,.1);
 }
 
 /* ── Base ── */
 html, body, [class*="css"] {
-    font-family: var(--sans);
-    background-color: var(--bg);
+    font-family: var(--serif);
+    background-color: var(--bg) !important;
     color: var(--text);
+}
+
+/* Force Streamlit's own containers to respect black — its built-in
+   dark theme uses navy and will bleed through without these overrides */
+[data-testid="stApp"],
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"],
+[data-testid="stMainBlockContainer"],
+section[data-testid="stSidebar"] > div,
+.main, .main > div {
+    background-color: var(--bg) !important;
+}
+
+/* FIX 3: Removed broken color-scheme: var(--color-scheme) line.
+   color-scheme is now injected as a literal value in the dynamic
+   f-string block below, which correctly sets it per theme. */
+html, body, [data-testid="stAppViewContainer"], [data-testid="stSidebar"],
+input, textarea, select, button {
+    /* color-scheme is set dynamically below */
+}
+
+[data-testid="stAppViewContainer"] {
+    background: var(--bg) !important;
 }
 
 /* ── Hide Streamlit chrome ── */
 #MainMenu, footer, header { visibility: hidden; }
-.block-container { padding: 2rem 2.5rem 4rem; max-width: 1200px; }
+.block-container { padding: 0.9rem 2.5rem 4rem; max-width: 1200px; }
+
+/* ── Theme Toggle Button ── */
+.theme-toggle-wrapper {
+    position: fixed;
+    top: 14px;
+    right: 18px;
+    z-index: 9999;
+}
 
 /* ── Sidebar ── */
-[data-testid="stSidebar"] {
-    background: var(--surface);
-    border-right: 1px solid var(--border);
+[data-testid="stSidebar"],
+[data-testid="stSidebar"] > div:first-child {
+    background: var(--surface) !important;
+    border-right: 1px solid var(--border) !important;
 }
 [data-testid="stSidebar"] .block-container { padding: 1.5rem 1rem; }
 
 /* ── Hero Header ── */
 .hero {
     text-align: center;
-    padding: 2.5rem 0 2rem;
-    position: relative;
+    padding: 1.2rem 0 1.7rem;
 }
 .hero-badge {
     display: inline-block;
     font-family: var(--mono);
-    font-size: 0.65rem;
-    letter-spacing: 0.2em;
+    font-size: 0.62rem;
+    letter-spacing: 0.22em;
     text-transform: uppercase;
     color: var(--accent2);
     border: 1px solid var(--accent2);
-    padding: 0.3rem 0.9rem;
+    padding: 0.28rem 0.85rem;
     border-radius: 2px;
-    margin-bottom: 1rem;
+    margin-bottom: 1.1rem;
+    opacity: 0.85;
 }
 .hero h1 {
-    font-family: var(--mono);
-    font-size: 2.6rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 60%, var(--accent3) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    font-family: var(--serif);
+    font-size: 3rem;
+    font-weight: 600;
+    font-style: italic;
+    letter-spacing: -0.01em;
+    color: var(--text);
     margin: 0 0 0.5rem;
-    line-height: 1.1;
+    line-height: 1.05;
+}
+.hero h1 span {
+    color: var(--accent);
+    font-style: normal;
 }
 .hero p {
     color: var(--muted);
-    font-size: 0.95rem;
-    font-weight: 300;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
     margin: 0;
 }
 
 /* ── Divider ── */
 .divider {
     height: 1px;
-    background: linear-gradient(90deg, transparent, var(--border), transparent);
-    margin: 1.5rem 0;
+    background: var(--border);
+    margin: 0.55rem 0 0.8rem;
+    opacity: 0.7;
 }
 
 /* ── Section Labels ── */
 .section-label {
     font-family: var(--mono);
-    font-size: 0.65rem;
-    letter-spacing: 0.18em;
+    font-size: 0.6rem;
+    letter-spacing: 0.22em;
     text-transform: uppercase;
-    color: var(--accent);
-    margin-bottom: 0.6rem;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.6rem;
 }
 .section-label::after {
     content: '';
@@ -134,15 +286,22 @@ html, body, [class*="css"] {
 .info-card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 1rem 1.2rem;
-    margin-bottom: 0.6rem;
-    font-size: 0.85rem;
+    border-radius: var(--radius);
+    padding: 0.9rem 1.1rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.84rem;
+    box-shadow: var(--shadow);
+    color: var(--text);
+    transition: border-color 0.2s, transform 0.12s;
+}
+.info-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
 }
 .info-card .label {
     font-family: var(--mono);
-    font-size: 0.6rem;
-    letter-spacing: 0.15em;
+    font-size: 0.58rem;
+    letter-spacing: 0.16em;
     color: var(--muted);
     text-transform: uppercase;
     margin-bottom: 0.3rem;
@@ -153,53 +312,77 @@ html, body, [class*="css"] {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     font-family: var(--mono);
-    padding: 0.2rem 0.7rem;
+    padding: 0.22rem 0.75rem;
     border-radius: 20px;
-    font-weight: 700;
-    letter-spacing: 0.05em;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
 }
-.pill-green  { background: rgba(0,200,150,.12); color: var(--success); border: 1px solid rgba(0,200,150,.3); }
-.pill-blue   { background: rgba(108,99,255,.12); color: var(--accent);  border: 1px solid rgba(108,99,255,.3); }
-.pill-orange { background: rgba(255,179,71,.12); color: var(--warning); border: 1px solid rgba(255,179,71,.3); }
-.pill-pink   { background: rgba(255,107,157,.12); color: var(--accent3); border: 1px solid rgba(255,107,157,.3); }
+.pill-green  { background: var(--pill-green-bg);  color: var(--success); border: 1px solid var(--pill-green-border); }
+.pill-blue   { background: var(--pill-blue-bg);   color: var(--accent);  border: 1px solid var(--pill-blue-border); }
+.pill-orange { background: var(--pill-orange-bg); color: var(--warning); }
+.pill-pink   { background: var(--pill-pink-bg);   color: var(--accent3); border: 1px solid var(--pill-pink-border); }
 
 /* ── Answer box ── */
 .answer-box {
-    background: linear-gradient(135deg, rgba(108,99,255,.06), rgba(0,229,255,.04));
-    border: 1px solid rgba(108,99,255,.35);
-    border-left: 3px solid var(--accent);
-    border-radius: 6px;
-    padding: 1.4rem 1.6rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 1.3rem 1.5rem;
     font-size: 0.95rem;
-    line-height: 1.75;
+    line-height: 1.8;
     color: var(--text);
-    margin-top: 1rem;
+    margin-top: 0.8rem;
+    box-shadow: var(--shadow);
+}
+
+/* ── User message bubble ── */
+.user-bubble {
+    text-align: right;
+    margin-bottom: 0.5rem;
+}
+.user-bubble span {
+    background: var(--accent);
+    color: #fff;
+    border-radius: 16px 16px 4px 16px;
+    padding: 0.48rem 1.05rem;
+    display: inline-block;
+    font-size: 0.88rem;
+    max-width: 80%;
+    font-family: var(--serif);
+    font-weight: 300;
+    line-height: 1.5;
 }
 
 /* ── Source cards ── */
 .source-item {
     display: flex;
     align-items: center;
-    gap: 0.8rem;
+    gap: 0.75rem;
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 5px;
-    padding: 0.65rem 1rem;
-    margin-bottom: 0.5rem;
-    transition: border-color .2s;
+    border-radius: 6px;
+    padding: 0.6rem 0.95rem;
+    margin-bottom: 0.45rem;
+    transition: border-color .2s, box-shadow .2s;
+    box-shadow: var(--shadow);
 }
-.source-item:hover { border-color: var(--accent2); }
+.source-item:hover {
+    border-color: var(--accent2);
+    box-shadow: var(--shadow-lg);
+}
 .source-icon {
-    font-size: 1rem;
-    width: 28px;
+    font-size: 0.95rem;
+    width: 26px;
     text-align: center;
     flex-shrink: 0;
 }
 .source-link {
     font-family: var(--mono);
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     color: var(--accent2);
     text-decoration: none;
     word-break: break-all;
@@ -209,36 +392,51 @@ html, body, [class*="css"] {
 .pipeline-step {
     display: flex;
     align-items: flex-start;
-    gap: 1rem;
-    padding: 0.7rem 0;
+    gap: 0.9rem;
+    padding: 0.65rem 0;
     border-bottom: 1px solid var(--border);
 }
 .pipeline-step:last-child { border-bottom: none; }
 .step-num {
     font-family: var(--mono);
-    font-size: 0.65rem;
-    color: var(--muted);
+    font-size: 0.6rem;
+    color: var(--accent);
     width: 20px;
     flex-shrink: 0;
     padding-top: 2px;
+    font-weight: 600;
 }
-.step-text { font-size: 0.85rem; color: var(--text); }
-.step-sub  { font-size: 0.75rem; color: var(--muted); margin-top: 0.15rem; }
+.step-text {
+    font-size: 0.84rem;
+    color: var(--text);
+    font-family: var(--serif);
+    font-weight: 500;
+}
+.step-sub  { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); margin-top: 0.12rem; }
 
 /* ── Inputs ── */
 .stTextInput > div > div > input,
 .stTextArea > div > div > textarea {
     background: var(--card) !important;
     border: 1px solid var(--border) !important;
-    border-radius: 5px !important;
+    border-radius: 6px !important;
     color: var(--text) !important;
-    font-family: var(--sans) !important;
+    font-family: var(--serif) !important;
     font-size: 0.9rem !important;
+    box-shadow: var(--shadow) !important;
+    transition: border-color .2s, box-shadow .2s !important;
 }
 .stTextInput > div > div > input:focus,
 .stTextArea > div > div > textarea:focus {
     border-color: var(--accent) !important;
-    box-shadow: 0 0 0 2px rgba(108,99,255,.15) !important;
+    box-shadow: var(--input-focus-shadow) !important;
+    outline: none !important;
+}
+
+.stTextInput > div > div > input::placeholder,
+.stTextArea > div > div > textarea::placeholder {
+    color: var(--muted) !important;
+    opacity: 0.92 !important;
 }
 
 /* ── Buttons ── */
@@ -246,115 +444,348 @@ html, body, [class*="css"] {
     background: var(--accent) !important;
     color: #fff !important;
     border: none !important;
-    border-radius: 5px !important;
+    border-radius: 6px !important;
     font-family: var(--mono) !important;
-    font-size: 0.78rem !important;
-    letter-spacing: 0.08em !important;
+    font-size: 0.72rem !important;
+    letter-spacing: 0.1em !important;
     text-transform: uppercase !important;
     padding: 0.55rem 1.4rem !important;
-    transition: opacity .2s, transform .1s !important;
+    transition: opacity .15s, transform .12s, box-shadow .15s !important;
+    box-shadow: var(--btn-shadow) !important;
+    font-weight: 600 !important;
 }
 .stButton > button:hover {
-    opacity: .85 !important;
+    opacity: .88 !important;
     transform: translateY(-1px) !important;
+    box-shadow: var(--btn-shadow-hover) !important;
+}
+.stButton > button:active {
+    transform: translateY(0) !important;
+    opacity: 1 !important;
+}
+
+button[kind="secondary"],
+.stButton > button[data-testid*="clear"],
+.stButton > button[data-testid*="reset"] {
+    background: var(--card) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: var(--shadow) !important;
+}
+.stButton > button[data-testid*="del"] {
+    background: transparent !important;
+    color: var(--muted) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: none !important;
+    padding: 0.3rem 0.6rem !important;
+    font-size: 0.8rem !important;
+}
+.stButton > button[data-testid*="del"]:hover {
+    color: var(--accent3) !important;
+    border-color: var(--accent3) !important;
+    box-shadow: none !important;
 }
 
 /* ── File uploader ── */
 [data-testid="stFileUploader"] {
     background: var(--card);
-    border: 1px dashed var(--border);
-    border-radius: 6px;
-    padding: 0.5rem;
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 0.6rem;
+    transition: border-color .2s;
+    box-shadow: var(--shadow);
+}
+[data-testid="stFileUploader"]:hover { border-color: var(--accent2); }
+[data-testid="stFileUploaderFile"] { display: none !important; }
+[data-testid="stFileUploaderDropzone"] {
+    background: var(--card) !important;
+    border: 1px dashed var(--border) !important;
+}
+[data-testid="stFileUploaderDropzone"] * {
+    color: var(--text) !important;
+}
+[data-testida="stFileUploaderDropzone"] small,
+[data-testid="stFileUploaderDropzoneInstructions"] {
+    color: var(--muted) !important;
+}
+[data-testid="stFileUploaderDropzone"] [data-testid="stBaseButton-secondary"] {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
 }
 
 /* ── Expander ── */
 [data-testid="stExpander"] {
-    background: var(--card);
+    background: var(--card) !important;
     border: 1px solid var(--border) !important;
-    border-radius: 6px !important;
+    border-radius: var(--radius) !important;
+    box-shadow: var(--shadow) !important;
+}
+[data-testid="stExpander"] summary {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
 }
 
 /* ── Progress / spinner ── */
 .stProgress > div > div > div { background: var(--accent) !important; }
+.stProgress > div > div {
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 999px !important;
+    padding: 1px !important;
+}
+[data-testid="stProgress"] [data-testid="stMarkdownContainer"],
+[data-testid="stProgress"] p,
+[data-testid="stProgress"] span {
+    color: var(--text) !important;
+    opacity: 1 !important;
+    font-family: var(--mono) !important;
+}
 
 /* ── Metric ── */
 [data-testid="stMetric"] {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 0.8rem 1rem;
+    background: var(--card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    padding: 0.8rem 1rem !important;
+    box-shadow: var(--shadow) !important;
+}
+[data-testid="stMetricLabel"] {
+    font-family: var(--mono) !important;
+    font-size: 0.6rem !important;
+    letter-spacing: 0.15em !important;
+    text-transform: uppercase !important;
+    color: var(--muted) !important;
+}
+[data-testid="stMetricValue"] {
+    font-family: var(--serif) !important;
+    font-size: 1.8rem !important;
+    color: var(--text) !important;
+    font-weight: 500 !important;
 }
 
-/* ── Link buttons (sources) ── */
+/* ── Tabs ── */
+[data-testid="stTabs"] [role="tablist"] {
+    border-bottom: 1px solid var(--border);
+    gap: 0;
+}
+[data-testid="stTabs"] button[role="tab"] {
+    font-family: var(--mono) !important;
+    font-size: 0.7rem !important;
+    letter-spacing: 0.1em !important;
+    text-transform: uppercase !important;
+    color: var(--muted) !important;
+    padding: 0.7rem 1.2rem !important;
+    border-bottom: none !important;
+    transition: color .2s !important;
+}
+[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
+    color: var(--accent) !important;
+}
+[data-testid="stTabs"] button[role="tab"]:hover { color: var(--text) !important; }
+[data-testid="stTabs"] [data-baseweb="tab-highlight"] {
+    background: var(--accent) !important;
+    height: 3px !important;
+}
+
+/* ── Link buttons ── */
 [data-testid="stLinkButton"] > a {
     background: var(--card) !important;
     color: var(--accent2) !important;
     border: 1px solid var(--border) !important;
-    border-radius: 4px !important;
+    border-radius: 5px !important;
     font-family: var(--mono) !important;
-    font-size: 0.73rem !important;
-    letter-spacing: 0.03em !important;
-    text-transform: none !important;
-    padding: 0.4rem 0.9rem !important;
+    font-size: 0.7rem !important;
+    letter-spacing: 0.04em !important;
+    padding: 0.42rem 0.9rem !important;
     text-align: left !important;
     justify-content: flex-start !important;
+    transition: border-color .2s, background .2s !important;
+    box-shadow: var(--shadow) !important;
 }
 [data-testid="stLinkButton"] > a:hover {
     border-color: var(--accent2) !important;
-    background: rgba(0,229,255,.06) !important;
-    color: var(--accent2) !important;
+    background: var(--link-hover-bg) !important;
 }
 
-/* ── Toast-style notice ── */
+/* ── Status box ── */
+[data-testid="stStatusWidget"] {
+    background: linear-gradient(180deg, var(--card), var(--surface)) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    box-shadow: var(--shadow-lg) !important;
+}
+[data-testid="stStatusWidget"],
+[data-testid="stStatusWidget"] * {
+    color: var(--text) !important;
+    opacity: 1 !important;
+}
+[data-testid="stStatusWidget"] [data-testid="stStatusWidgetLabel"] {
+    font-family: var(--mono) !important;
+    letter-spacing: 0.05em !important;
+}
+[data-testid="stStatusWidget"] [data-testid="stMarkdownContainer"],
+[data-testid="stStatusWidget"] [data-testid="stMarkdownContainer"] p,
+[data-testid="stStatusWidget"] [data-testid="stMarkdownContainer"] li,
+[data-testid="stStatusWidget"] [data-testid="stMarkdownContainer"] span,
+[data-testid="stStatusWidget"] [data-testid="stMarkdownContainer"] div {
+    color: var(--text) !important;
+    opacity: 1 !important;
+}
+
+/* ── Alerts ── */
+[data-testid="stAlert"] {
+    border-radius: var(--radius) !important;
+    font-family: var(--mono) !important;
+    font-size: 0.8rem !important;
+}
+
+/* ── Notice ── */
 .notice {
     font-family: var(--mono);
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     color: var(--muted);
     letter-spacing: 0.05em;
     padding: 0.5rem 0;
+    line-height: 1.7;
+}
+
+/* ── Pipeline status readability ── */
+.status-line {
+    color: var(--text) !important;
+    font-family: var(--mono) !important;
+    font-size: 0.8rem !important;
+    line-height: 1.7 !important;
+    letter-spacing: 0.01em;
+    opacity: 1 !important;
+}
+.status-line-ok {
+    color: var(--accent2) !important;
+    font-weight: 600;
+}
+
+[data-testid="stProgress"] p,
+[data-testid="stProgress"] span,
+[data-testid="stProgress"] div,
+.stProgress p,
+.stProgress span,
+.stProgress div {
+    color: var(--text) !important;
+    opacity: 1 !important;
+    font-family: var(--mono) !important;
+    font-size: 0.78rem !important;
+}
+
+[data-testid="stStatusWidget"] p,
+[data-testid="stStatusWidget"] span,
+[data-testid="stStatusWidget"] li,
+[data-testid="stStatusWidget"] div,
+[data-testid="stStatusWidget"] label,
+[data-testid="stStatusWidget"] small,
+[data-testid="stStatusWidget"] [style*="opacity"],
+[data-testid="stStatusWidget"] [style*="color"] {
+    color: var(--text) !important;
+    opacity: 1 !important;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* ── Theme toggle button styling ── */
+.st-key-theme_switch {
+    display: inline-block;
+    float: right;
+    margin: 0 !important;
+}
+
+.st-key-theme_switch > div {
+    margin: 0 !important;
+}
+
+.st-key-theme_switch button {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 50px;
+    padding: 6px 14px 6px 10px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    box-shadow: var(--toggle-shadow);
+    transition: border-color 0.2s, color 0.2s, box-shadow 0.2s;
+    text-decoration: none;
+    user-select: none;
+}
+.st-key-theme_switch button:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 3px 14px rgba(37,99,235,0.18);
 }
 </style>
 """, unsafe_allow_html=True)
 
-
-# ── Session State ──────────────────────────────────────────────────────────────
-for key, default in {
-    "pipeline_ready": False,
-    "embedded_docs": None,
-    "doc_summary": {},
-    "chat_history": [],
-    "processing": False,
-    "yt_inputs": [""],
-}.items():
-    if key not in st.session_state:
-        st.session_state[key] = default
-
-
-@st.cache_resource
-def load_qa_modules():
-    """Import QA modules once and cache — prevents repeated module-level execution."""
-    from rag.qa_pipeline import qa_pipeline
-    from rag.citation_handler import format_citations
-    return qa_pipeline, format_citations
-
+# ── FIX 1: Removed # comments from inside f-string (they were rendered as
+#    invalid CSS and caused the entire :root block to partially fail).
+# ── FIX 2: Added color-scheme as a real CSS literal property so native
+#    controls (inputs, scrollbars) correctly respond to the theme on Windows.
+st.markdown(f"""
+<style>
+:root {{
+    color-scheme: {theme_tokens['color_scheme']};
+    --bg: {theme_tokens['bg']};
+    --surface: {theme_tokens['surface']};
+    --card: {theme_tokens['card']};
+    --border: {theme_tokens['border']};
+    --accent: {theme_tokens['accent']};
+    --accent2: {theme_tokens['accent2']};
+    --accent3: {theme_tokens['accent3']};
+    --text: {theme_tokens['text']};
+    --muted: {theme_tokens['muted']};
+    --success: {theme_tokens['success']};
+    --warning: {theme_tokens['warning']};
+    --shadow: {theme_tokens['shadow']};
+    --shadow-lg: {theme_tokens['shadow_lg']};
+    --pill-green-bg: {theme_tokens['pill_green_bg']};
+    --pill-green-border: {theme_tokens['pill_green_border']};
+    --pill-blue-bg: {theme_tokens['pill_blue_bg']};
+    --pill-blue-border: {theme_tokens['pill_blue_border']};
+    --pill-orange-bg: {theme_tokens['pill_orange_bg']};
+    --pill-orange-border: {theme_tokens['pill_orange_border']};
+    --pill-pink-bg: {theme_tokens['pill_pink_bg']};
+    --pill-pink-border: {theme_tokens['pill_pink_border']};
+    --input-focus-shadow: {theme_tokens['input_focus_shadow']};
+    --link-hover-bg: {theme_tokens['link_hover_bg']};
+    --btn-shadow: {theme_tokens['btn_shadow']};
+    --btn-shadow-hover: {theme_tokens['btn_shadow_hover']};
+    --toggle-shadow: {theme_tokens['toggle_shadow']};
+}}
+</style>
+""", unsafe_allow_html=True)
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def extract_link_from_source(citation) -> str:
-    """Extract link from a format_citations() dict."""
     if isinstance(citation, dict):
         ctype = citation.get("type", "")
         if ctype == "YouTube":
             return citation.get("link", "")
         elif ctype == "PDF":
-            # citation["file"] comes from meta.get("file_name") in citation_handler
-            # but actual metadata key is "filename" — so also check raw metadata
             return citation.get("file", "") or citation.get("filename", "")
         return citation.get("link", citation.get("display", str(citation)))
     return str(citation)
 
 def is_youtube(link: str) -> bool:
     return "youtube.com" in link or "youtu.be" in link
-
 
 def source_icon(link: str) -> str:
     if is_youtube(link):
@@ -364,13 +795,20 @@ def source_icon(link: str) -> str:
     return "🔗"
 
 
+@st.cache_resource
+def load_qa_modules():
+    from rag.qa_pipeline import qa_pipeline
+    from rag.citation_handler import format_citations
+    return qa_pipeline, format_citations
+
+
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown('<div class="section-label">System</div>', unsafe_allow_html=True)
 
     if st.session_state.pipeline_ready:
         st.markdown(
-            '<span class="pill pill-green">● PIPELINE READY</span>',
+            '<span class="pill pill-green">● Pipeline Ready</span>',
             unsafe_allow_html=True,
         )
         s = st.session_state.doc_summary
@@ -402,12 +840,12 @@ with st.sidebar:
             st.rerun()
     else:
         st.markdown(
-            '<span class="pill pill-orange">○ NOT READY</span>',
+            '<span class="pill pill-blue">○ Not Ready</span>',
             unsafe_allow_html=True,
         )
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown(
-            '<div class="notice">Add sources in the main panel and run the pipeline to enable Q&A.</div>',
+            '<div class="notice">Add sources in the main panel and run the pipeline to enable Q&amp;A.</div>',
             unsafe_allow_html=True,
         )
 
@@ -435,8 +873,8 @@ with st.sidebar:
 st.markdown("""
 <div class="hero">
   <div class="hero-badge">Your AI Study Companion</div>
-  <h1>Learn Mate</h1>
-  <p>Multi-source knowledge extraction · PDF &amp; Video · Semantic Q&amp;A</p>
+  <h1><span>Learn</span> Mate</h1>
+  <p>Multi-source · PDF &amp; Video · Semantic Q&amp;A</p>
 </div>
 <div class="divider"></div>
 """, unsafe_allow_html=True)
@@ -461,14 +899,33 @@ with tab_ingest:
             help="Upload one or more PDF files to include in the knowledge base.",
             label_visibility="collapsed",
         )
-        if uploaded_pdfs:
-            for f in uploaded_pdfs:
-                st.markdown(
-                    f'<div class="info-card">📄 <strong>{f.name}</strong>'
-                    f'<span style="float:right;color:var(--muted);font-size:.75rem">'
-                    f'{f.size/1024:.1f} KB</span></div>',
-                    unsafe_allow_html=True,
-                )
+
+        uploaded_pdfs = uploaded_pdfs or []
+        all_pdf_ids = [f"{f.name}:{f.size}" for f in uploaded_pdfs]
+        st.session_state.removed_pdf_ids = [
+            pid for pid in st.session_state.removed_pdf_ids if pid in all_pdf_ids
+        ]
+
+        active_uploaded_pdfs = []
+        for f in uploaded_pdfs:
+            pdf_id = f"{f.name}:{f.size}"
+            if pdf_id not in st.session_state.removed_pdf_ids:
+                active_uploaded_pdfs.append((pdf_id, f))
+
+        if active_uploaded_pdfs:
+            for idx, (pdf_id, f) in enumerate(active_uploaded_pdfs):
+                card_col, del_col = st.columns([12, 1], vertical_alignment="center")
+                with card_col:
+                    st.markdown(
+                        f'<div class="info-card">📄 <strong>{f.name}</strong>'
+                        f'<span style="float:right;color:var(--muted);font-family:var(--mono);font-size:.72rem">'
+                        f'{f.size/1024:.1f} KB</span></div>',
+                        unsafe_allow_html=True,
+                    )
+                with del_col:
+                    if st.button("✕", key=f"rm_pdf_{idx}"):
+                        st.session_state.removed_pdf_ids.append(pdf_id)
+                        st.rerun()
 
     # ── YouTube column ────────────────────────────────────────────────────────
     with col_yt:
@@ -498,7 +955,6 @@ with tab_ingest:
             st.session_state.yt_inputs.append("")
             st.rerun()
 
-    st.markdown("<br>", unsafe_allow_html=True)
     st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
     # ── Run pipeline ─────────────────────────────────────────────────────────
@@ -515,11 +971,10 @@ with tab_ingest:
         yt_urls = [u.strip() for u in st.session_state.yt_inputs if u.strip()]
         pdf_paths = []
 
-        # Save uploaded PDFs to temp files
-        if uploaded_pdfs:
+        if active_uploaded_pdfs:
             import tempfile, shutil
             tmp_dir = tempfile.mkdtemp()
-            for f in uploaded_pdfs:
+            for _, f in active_uploaded_pdfs:
                 tmp_path = os.path.join(tmp_dir, f.name)
                 with open(tmp_path, "wb") as out:
                     out.write(f.read())
@@ -538,8 +993,7 @@ with tab_ingest:
 
                 with st.status("Running pipeline…", expanded=True) as status:
 
-                    # Step 0 — Load
-                    st.write("📥 Loading sources — may take a moment for YouTube videos…")
+                    st.markdown('<div class="status-line">📥 Loading sources - may take a moment for YouTube videos...</div>', unsafe_allow_html=True)
                     progress_bar.progress(5, text="📥  Loading sources…")
                     manager = DocumentManager()
                     documents = manager.load_all_sources(
@@ -547,7 +1001,10 @@ with tab_ingest:
                         youtube_urls=yt_urls,
                     )
                     progress_bar.progress(20, text="📥  Sources loaded!")
-                    st.write(f"✅ Loaded {len(documents)} document(s)")
+                    st.markdown(
+                        f'<div class="status-line status-line-ok">✅ Loaded {len(documents)} document(s)</div>',
+                        unsafe_allow_html=True,
+                    )
 
                     if not documents:
                         status.update(label="❌ No documents loaded", state="error")
@@ -556,29 +1013,31 @@ with tab_ingest:
 
                     raw_summary = manager.summarize(documents)
 
-                    # Step 1 — Clean
-                    st.write("🧹 Cleaning and normalising text…")
+                    st.markdown('<div class="status-line">🧹 Cleaning and normalising text...</div>', unsafe_allow_html=True)
                     progress_bar.progress(30, text="🧹  Cleaning text…")
                     clean_docs = clean_documents(documents)
                     progress_bar.progress(45, text="🧹  Text cleaned!")
-                    st.write("✅ Text cleaned")
+                    st.markdown('<div class="status-line status-line-ok">✅ Text cleaned</div>', unsafe_allow_html=True)
 
-                    # Step 2 — Chunk
-                    st.write("✂️ Chunking documents…")
+                    st.markdown('<div class="status-line">✂️ Chunking documents...</div>', unsafe_allow_html=True)
                     progress_bar.progress(50, text="✂️  Chunking…")
                     chunks = chunk_documents(clean_docs)
                     progress_bar.progress(62, text=f"✂️  {len(chunks)} chunks created!")
-                    st.write(f"✅ Created {len(chunks)} chunks")
+                    st.markdown(
+                        f'<div class="status-line status-line-ok">✅ Created {len(chunks)} chunks</div>',
+                        unsafe_allow_html=True,
+                    )
 
-                    # Step 3 — Embed
-                    st.write("🧠 Generating embeddings — this is the slow step…")
+                    st.markdown('<div class="status-line">🧠 Generating embeddings - this is the slow step...</div>', unsafe_allow_html=True)
                     progress_bar.progress(65, text="🧠  Embedding…")
                     embedding_model = EmbeddingModel()
                     embedded_docs = embedding_model.embed_documents(chunks)
                     progress_bar.progress(95, text="🧠  Embeddings ready!")
-                    st.write(f"✅ Embedded {len(embedded_docs)} documents")
+                    st.markdown(
+                        f'<div class="status-line status-line-ok">✅ Embedded {len(embedded_docs)} documents</div>',
+                        unsafe_allow_html=True,
+                    )
 
-                    # Done
                     progress_bar.progress(100, text="✅  Pipeline complete!")
                     status.update(label="✅ Pipeline complete — go to Ask Questions tab!", state="complete", expanded=False)
 
@@ -606,30 +1065,23 @@ with tab_ingest:
 with tab_qa:
     if not st.session_state.pipeline_ready:
         st.markdown(
-            '<div class="answer-box" style="border-left-color:var(--warning);text-align:center;color:var(--muted)">'
+            '<div class="answer-box" style="border-top-color:var(--accent2);text-align:center;color:var(--muted)">'
             'Pipeline not ready. Add sources and run ingest first.'
             '</div>',
             unsafe_allow_html=True,
         )
     else:
-        # Chat history
         if st.session_state.chat_history:
             st.markdown('<div class="section-label">Conversation</div>', unsafe_allow_html=True)
             for entry in st.session_state.chat_history:
-                # User bubble
                 st.markdown(
-                    f'<div style="text-align:right;margin-bottom:.5rem">'
-                    f'<span style="background:rgba(108,99,255,.18);border:1px solid rgba(108,99,255,.3);'
-                    f'border-radius:16px 16px 4px 16px;padding:.45rem 1rem;display:inline-block;'
-                    f'font-size:.88rem;max-width:80%">{entry["question"]}</span></div>',
+                    f'<div class="user-bubble"><span>{entry["question"]}</span></div>',
                     unsafe_allow_html=True,
                 )
-                # Answer
                 st.markdown(
                     f'<div class="answer-box">{entry["answer"]}</div>',
                     unsafe_allow_html=True,
                 )
-                # Sources
                 if entry.get("sources"):
                     with st.expander(f"📎  {len(entry['sources'])} source(s)  — click to expand"):
                         for src in entry["sources"]:
@@ -637,23 +1089,18 @@ with tab_qa:
                             display = src.get("display", "")
                             link = src.get("link", "")
                             fname = src.get("file", "")
-                            timestamp = src.get("timestamp", "")
 
                             if stype == "YouTube" and link:
                                 label = f"▶  {display}" if display else link
                                 label = label if len(label) <= 70 else label[:67] + "..."
                                 st.link_button(label, link, use_container_width=True)
                             elif stype == "PDF":
-                                # Use fname (from meta["file_name"]) directly — avoids the
-                                # citation_handler "filename" vs "file_name" typo in display
-                                # "file" comes from citation_handler's meta.get("file_name")
-                                # actual key in metadata is "filename" (no underscore)
                                 pdf_label = fname or src.get("filename", "") or src.get("display", "Document")
                                 page = src.get("page", "N/A")
                                 st.markdown(
                                     f'<div class="source-item">'
                                     f'<span class="source-icon">📄</span>'
-                                    f'<span style="font-family:var(--mono);font-size:.75rem;color:var(--text)">'
+                                    f'<span style="font-family:var(--mono);font-size:.72rem;color:var(--text)">'
                                     f'{pdf_label} — Page {page}</span>'
                                     f'</div>',
                                     unsafe_allow_html=True,
@@ -662,13 +1109,12 @@ with tab_qa:
                                 st.markdown(
                                     f'<div class="source-item">'
                                     f'<span class="source-icon">🔗</span>'
-                                    f'<span style="font-family:var(--mono);font-size:.75rem;color:var(--muted)">{display}</span>'
+                                    f'<span style="font-family:var(--mono);font-size:.72rem;color:var(--muted)">{display}</span>'
                                     f'</div>',
                                     unsafe_allow_html=True,
                                 )
                 st.markdown("<br>", unsafe_allow_html=True)
 
-        # Question input
         st.markdown('<div class="section-label">Ask</div>', unsafe_allow_html=True)
         question = st.text_area(
             "Question",
@@ -696,8 +1142,6 @@ with tab_qa:
                     )
                     citations = format_citations(sources)
 
-                    # Build source list directly from retrieved_docs metadata
-                    # avoids citation_handler key typos entirely
                     links = []
                     for doc in sources:
                         meta = doc.get("metadata", {})
@@ -729,7 +1173,6 @@ with tab_qa:
                             })
                     links = links[:3]
 
-                    # Hide sources if LLM couldn't find answer in context
                     cant_answer = "i don't have enough information" in answer.lower()
                     st.session_state.chat_history.append({
                         "question": question.strip(),
