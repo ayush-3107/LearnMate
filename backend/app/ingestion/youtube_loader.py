@@ -18,7 +18,7 @@ def format_timestamp(seconds):
     return f"{minutes:02d}:{seconds:02d}"
 
 
-def load_youtube_transcript(url, chunk_duration=60):
+def load_youtube_transcript(url, chunk_duration=30):
     try:
         video_id = extract_video_id(url)
 
@@ -26,7 +26,7 @@ def load_youtube_transcript(url, chunk_duration=60):
         ytt_api = YouTubeTranscriptApi()
         transcript = ytt_api.fetch(video_id, languages=['en', 'hi'])
 
-        # Group snippets into 60-second chunks
+        # Group snippets into 30-second chunks
         chunks = {}
         docs = []
 
