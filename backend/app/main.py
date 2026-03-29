@@ -236,7 +236,6 @@ input, textarea, select, button {
     font-family: var(--serif);
     font-size: 3rem;
     font-weight: 600;
-    font-style: italic;
     letter-spacing: -0.01em;
     color: var(--text);
     margin: 0 0 0.5rem;
