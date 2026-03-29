@@ -24,7 +24,7 @@ st.set_page_config(
     page_title="Learn Mate",
     page_icon="🎓",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 # ── Session State ──────────────────────────────────────────────────────────────
@@ -203,10 +203,8 @@ section[data-testid="stSidebar"] > div,
 
 [data-testid="stSidebar"],
 [data-testid="stSidebar"] > div:first-child {
-    background: var(--surface) !important;
-    border-right: 1px solid var(--border) !important;
+    display: none !important;
 }
-[data-testid="stSidebar"] .block-container { padding: 1.5rem 1rem; }
 
 .hero {
     text-align: center;
@@ -1275,8 +1273,11 @@ with tab_quiz:
 
             _section("Difficulty")
             diff_cols   = st.columns(4)
-            diff_labels = ["Easy",  "Medium", "Hard",  "Mix"]
-            diff_vals   = ["easy",  "medium", "hard",  "mix"]
+            diff_labels = ["Easy",  "Medium", "Hard",  "Dynamic"]
+            diff_vals   = ["easy",  "medium", "hard",  "dynamic"]
+
+            if st.session_state.quiz_difficulty == "mix":
+                st.session_state.quiz_difficulty = "dynamic"
 
             for col, label, val in zip(diff_cols, diff_labels, diff_vals):
                 with col:
@@ -1411,7 +1412,7 @@ with tab_quiz:
                 _section(f"Quiz · {topic}")
                 st.markdown(
                     _pill(f"{num_q} Questions", "blue") + "&nbsp;&nbsp;" +
-                    _pill(diff, {"Easy":"green","Medium":"blue","Hard":"pink","Mix":"orange"}.get(diff,"blue")),
+                    _pill(diff, {"Easy":"green","Medium":"blue","Hard":"pink","Dynamic":"orange","Mix":"orange"}.get(diff,"blue")),
                     unsafe_allow_html=True,
                 )
                 st.markdown("<br>", unsafe_allow_html=True)
@@ -1613,7 +1614,7 @@ with tab_quiz:
                         unsafe_allow_html=True,
                     )
                     st.markdown(
-                        _pill(diff, {"Easy":"green","Medium":"blue","Hard":"pink","Mix":"orange"}.get(diff,"blue")),
+                        _pill(diff, {"Easy":"green","Medium":"blue","Hard":"pink","Dynamic":"orange","Mix":"orange"}.get(diff,"blue")),
                         unsafe_allow_html=True,
                     )
 

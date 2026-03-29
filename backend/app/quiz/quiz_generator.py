@@ -35,7 +35,7 @@ class QuizGenerator:
             return "only medium, conceptual understanding questions"
         elif level == "hard":
             return "only hard, analytical and tricky questions"
-        elif level == "mix":
+        elif level in ("mix", "dynamic"):
             return "a balanced mix of easy, medium, and hard questions"
         return "general questions"
 

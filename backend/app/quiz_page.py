@@ -122,9 +122,12 @@ def _render_config_phase() -> None:
 
     _section("Difficulty")
     diff_cols = st.columns(4)
-    diff_labels   = ["Easy", "Medium", "Hard", "Mix"]
-    diff_vals     = ["easy", "medium", "hard", "mix"]
+    diff_labels   = ["Easy", "Medium", "Hard", "Dynamic"]
+    diff_vals     = ["easy", "medium", "hard", "dynamic"]
     diff_variants = ["green", "blue", "pink", "orange"]
+
+    if st.session_state.quiz_difficulty == "mix":
+        st.session_state.quiz_difficulty = "dynamic"
 
     selected_diff = st.session_state.quiz_difficulty
 
@@ -142,7 +145,7 @@ def _render_config_phase() -> None:
                 pill_style = "border:1.5px solid var(--success);background:var(--pill-green-bg)"
             elif val == "hard" and is_selected:
                 pill_style = "border:1.5px solid var(--accent3);background:var(--pill-pink-bg)"
-            elif val == "mix" and is_selected:
+            elif val == "dynamic" and is_selected:
                 pill_style = "border:1.5px solid var(--warning);background:var(--pill-orange-bg)"
 
             if st.button(
@@ -287,6 +290,7 @@ def _render_answering_phase() -> None:
                 "Easy":   "green",
                 "Medium": "blue",
                 "Hard":   "pink",
+                "Dynamic": "orange",
                 "Mix":    "orange",
             }.get(diff, "blue")),
             unsafe_allow_html=True,
@@ -506,7 +510,7 @@ def _render_results_phase() -> None:
         st.markdown(
             _pill(diff, {
                 "Easy": "green", "Medium": "blue",
-                "Hard": "pink", "Mix": "orange",
+                "Hard": "pink", "Dynamic": "orange", "Mix": "orange",
             }.get(diff, "blue")),
             unsafe_allow_html=True,
         )
