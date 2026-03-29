@@ -1,5 +1,12 @@
 from youtube_transcript_api import YouTubeTranscriptApi
 from urllib.parse import urlparse, parse_qs
+import urllib.request
+import re
+
+try:
+    from pytube import YouTube
+except ImportError:
+    YouTube = None
 
 
 def extract_video_id(url):
@@ -12,6 +19,50 @@ def extract_video_id(url):
         return parse_qs(parsed_url.query)["v"][0]
 
 
+def get_video_title(url):
+    """
+    Fetch YouTube video title.
+    Tries pytube first, then falls back to scraping page HTML.
+    Returns None if all methods fail.
+    """
+    try:
+        # Method 1: Try pytube
+        if YouTube is not None:
+            try:
+                yt = YouTube(url)
+                title = yt.title
+                if title and title.strip() and title != "YouTube Video":
+                    return title
+            except Exception as e:
+                print(f"Pytube failed: {e}")
+        
+        # Method 2: Try scraping HTML
+        try:
+            with urllib.request.urlopen(url, timeout=5) as response:
+                html = response.read().decode('utf-8')
+                # Look for title in meta tags
+                match = re.search(r'<meta\s+name="title"\s+content="([^"]*)"', html)
+                if match:
+                    title = match.group(1)
+                    if title and title.strip():
+                        return title
+                
+                # Alternative: Look for og:title
+                match = re.search(r'<meta\s+property="og:title"\s+content="([^"]*)"', html)
+                if match:
+                    title = match.group(1)
+                    if title and title.strip():
+                        return title
+        except Exception as e:
+            print(f"HTML scraping failed: {e}")
+        
+        return None
+    
+    except Exception as e:
+        print(f"Error fetching video title: {e}")
+        return None
+
+
 def format_timestamp(seconds):
     minutes = int(seconds // 60)
     seconds = int(seconds % 60)
@@ -21,6 +72,7 @@ def format_timestamp(seconds):
 def load_youtube_transcript(url, chunk_duration=60):
     try:
         video_id = extract_video_id(url)
+        video_title = get_video_title(url)
 
         # Create API instance and fetch transcript
         ytt_api = YouTubeTranscriptApi()
@@ -47,14 +99,22 @@ def load_youtube_transcript(url, chunk_duration=60):
             # Calculate chunk end time
             chunk_end = chunk_start + chunk_duration
 
+            # Base URL without timestamp (for deduplication)
+            base_url = f"https://www.youtube.com/watch?v={video_id}"
+            # Timestamped URL for direct playback
+            timestamped_url = f"{base_url}&t={int(chunk_start)}s"
+
             docs.append({
                 "text": combined_text,
                 "timestamp_seconds": chunk_start,
                 "timestamp": format_timestamp(chunk_start),
                 "chunk_end_seconds": chunk_end,
                 "chunk_end_timestamp": format_timestamp(chunk_end),
-                "source": f"https://www.youtube.com/watch?v={video_id}&t={int(chunk_start)}s",
-                "chunk_duration": chunk_duration
+                "source": base_url,  # Use base URL for source deduplication
+                "timestamped_link": timestamped_url,  # Keep timestamp URL if needed
+                "chunk_duration": chunk_duration,
+                "video_title": video_title,  # Include video title
+                "video_id": video_id,  # Include video ID
             })
 
         return docs

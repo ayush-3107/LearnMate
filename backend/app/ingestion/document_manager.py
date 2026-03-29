@@ -43,6 +43,12 @@ class DocumentManager:
             transcript_chunks = load_youtube_transcript(url)
 
             for chunk in transcript_chunks:
+                # Get the title, with fallback to video ID
+                video_title = chunk.get("video_title")
+                if not video_title or video_title.strip() == "":
+                    # Fallback: extract video ID for display
+                    video_id = chunk.get("video_id", "")
+                    video_title = f"Video ({video_id[:8]})" if video_id else "YouTube Video"
 
                 documents.append({
                     "text": chunk["text"],
@@ -50,8 +56,8 @@ class DocumentManager:
                         "source": "youtube",
                         "video_url": chunk["source"],
                         "link": chunk["source"],
-                        "title": "YouTube Video",              
-                        "link" : chunk["source"],
+                        "title": video_title,
+                        "video_id": chunk.get("video_id"),
                         "timestamp": chunk["timestamp"],
                         "timestamp_seconds": chunk["timestamp_seconds"],
                         "chunk_end_timestamp": chunk["chunk_end_timestamp"]
@@ -88,7 +94,8 @@ class DocumentManager:
             "total_chunks": len(docs),
             "pdf_chunks": 0,
             "youtube_chunks": 0,
-            "sources": set()
+            "sources": set(),
+            "source_titles": {}  # Map source URL/filename to display title
         }
 
         for d in docs:
@@ -97,11 +104,16 @@ class DocumentManager:
 
             if source == "pdf":
                 summary["pdf_chunks"] += 1
-                summary["sources"].add(d["metadata"]["filename"])
+                filename = d["metadata"]["filename"]
+                summary["sources"].add(filename)
+                summary["source_titles"][filename] = filename
 
             if source == "youtube":
                 summary["youtube_chunks"] += 1
-                summary["sources"].add(d["metadata"]["video_url"])
+                video_url = d["metadata"]["video_url"]
+                title = d["metadata"].get("title", "YouTube Video")
+                summary["sources"].add(video_url)
+                summary["source_titles"][video_url] = title
 
         summary["sources"] = list(summary["sources"])
 

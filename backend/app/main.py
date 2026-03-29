@@ -29,15 +29,28 @@ st.set_page_config(
 
 # ── Session State ──────────────────────────────────────────────────────────────
 for key, default in {
-    "pipeline_ready": False,
-    "embedded_docs": None,
-    "doc_summary": {},
-    "chat_history": [],
-    "processing": False,
-    "yt_inputs": [""],
-    "removed_pdf_ids": [],
-    "theme": "dark",           # default to dark on first launch
-    "theme_user_set": False,    # track whether user explicitly changed theme
+    "pipeline_ready":    False,
+    "embedded_docs":     None,
+    "doc_summary":       {},
+    "available_sources": [],           # List of loaded source names (PDFs + YouTube URLs)
+    "source_titles":     {},           # Map of source URL/filename to display title
+    "selected_sources":  [],           # List of sources selected for quiz filtering
+    "chat_history":      [],
+    "processing":        False,
+    "yt_inputs":         [""],
+    "removed_pdf_ids":   [],
+    "theme":             "dark",
+    "theme_user_set":    False,
+    # ── Quiz state ──────────────────────────────────────────────────────────
+    "quiz_text":         "",
+    "quiz_parsed":       [],
+    "quiz_user_answers": {},
+    "quiz_result":       None,
+    "quiz_phase":        "config",   # config | answering | results
+    "quiz_topic":        "",
+    "quiz_num_q":        5,
+    "quiz_difficulty":   "medium",
+    "quiz_detail_qid":   None,         # selected question id in results modal
 }.items():
     if key not in st.session_state:
         st.session_state[key] = default
@@ -55,8 +68,6 @@ if st.button("☀ Light" if _is_dark else "🌙 Dark", key="theme_switch", help=
     st.rerun()
 
 theme_tokens = {
-    # Dark mode: true black base, dark gray surfaces, white text
-    # Light mode: clean white base, light gray surfaces, near-black text
     "bg":        "#000000" if _is_dark else "#f7f9fc",
     "surface":   "#111111" if _is_dark else "#eef3f8",
     "card":      "#1a1a1a" if _is_dark else "#ffffff",
@@ -70,28 +81,26 @@ theme_tokens = {
     "warning":   "#fbbf24" if _is_dark else "#d97706",
     "shadow":    "0 1px 3px rgba(0,0,0,.8), 0 1px 2px rgba(0,0,0,.6)" if _is_dark else "0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05)",
     "shadow_lg": "0 4px 16px rgba(0,0,0,.9), 0 2px 4px rgba(0,0,0,.7)" if _is_dark else "0 4px 16px rgba(0,0,0,.1), 0 2px 4px rgba(0,0,0,.06)",
-    "pill_green_bg":     "rgba(74,222,128,.1)"   if _is_dark else "rgba(5,150,105,.08)",
-    "pill_green_border": "rgba(74,222,128,.3)"   if _is_dark else "rgba(5,150,105,.2)",
-    "pill_blue_bg":      "rgba(120,178,255,.1)"  if _is_dark else "rgba(37,99,235,.08)",
-    "pill_blue_border":  "rgba(120,178,255,.3)"  if _is_dark else "rgba(37,99,235,.2)",
-    "pill_orange_bg":    "rgba(251,191,36,.1)"   if _is_dark else "rgba(217,119,6,.08)",
-    "pill_orange_border":"rgba(251,191,36,.3)"   if _is_dark else "rgba(217,119,6,.2)",
-    "pill_pink_bg":      "rgba(196,167,255,.1)"  if _is_dark else "rgba(124,58,237,.08)",
-    "pill_pink_border":  "rgba(196,167,255,.3)"  if _is_dark else "rgba(124,58,237,.2)",
-    "input_focus_shadow":"0 0 0 3px rgba(120,178,255,.25)" if _is_dark else "0 0 0 3px rgba(37,99,235,.12)",
-    "link_hover_bg":     "rgba(56,214,195,.06)"  if _is_dark else "rgba(8,145,178,.06)",
-    "btn_shadow":        "0 3px 12px rgba(0,0,0,.6)"  if _is_dark else "0 2px 8px rgba(37,99,235,.25)",
-    "btn_shadow_hover":  "0 6px 18px rgba(0,0,0,.8)"  if _is_dark else "0 4px 14px rgba(37,99,235,.35)",
-    "toggle_shadow":     "0 3px 12px rgba(0,0,0,.9)"  if _is_dark else "0 2px 10px rgba(0,0,0,.1)",
-    "color_scheme":      "dark" if _is_dark else "light",
+    "pill_green_bg":      "rgba(74,222,128,.1)"   if _is_dark else "rgba(5,150,105,.08)",
+    "pill_green_border":  "rgba(74,222,128,.3)"   if _is_dark else "rgba(5,150,105,.2)",
+    "pill_blue_bg":       "rgba(120,178,255,.1)"  if _is_dark else "rgba(37,99,235,.08)",
+    "pill_blue_border":   "rgba(120,178,255,.3)"  if _is_dark else "rgba(37,99,235,.2)",
+    "pill_orange_bg":     "rgba(251,191,36,.1)"   if _is_dark else "rgba(217,119,6,.08)",
+    "pill_orange_border": "rgba(251,191,36,.3)"   if _is_dark else "rgba(217,119,6,.2)",
+    "pill_pink_bg":       "rgba(196,167,255,.1)"  if _is_dark else "rgba(124,58,237,.08)",
+    "pill_pink_border":   "rgba(196,167,255,.3)"  if _is_dark else "rgba(124,58,237,.2)",
+    "input_focus_shadow": "0 0 0 3px rgba(120,178,255,.25)" if _is_dark else "0 0 0 3px rgba(37,99,235,.12)",
+    "link_hover_bg":      "rgba(56,214,195,.06)"  if _is_dark else "rgba(8,145,178,.06)",
+    "btn_shadow":         "0 3px 12px rgba(0,0,0,.6)"  if _is_dark else "0 2px 8px rgba(37,99,235,.25)",
+    "btn_shadow_hover":   "0 6px 18px rgba(0,0,0,.8)"  if _is_dark else "0 4px 14px rgba(37,99,235,.35)",
+    "toggle_shadow":      "0 3px 12px rgba(0,0,0,.9)"  if _is_dark else "0 2px 10px rgba(0,0,0,.1)",
+    "color_scheme":       "dark" if _is_dark else "light",
 }
 
-# ── Custom CSS ─────────────────────────────────────────────────────────────────
 # ── Load fonts locally (fallback: try Google, then system fonts) ───────────────
 import base64, pathlib
 
 def _load_local_fonts() -> str:
-    """Return @font-face CSS if local woff2 files exist, else empty string."""
     font_dir = pathlib.Path(__file__).parent.parent / "static" / "fonts"
     if not font_dir.exists():
         return ""
@@ -121,13 +130,12 @@ _google_fonts_import = (
     else "@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');"
 )
 
+# ── Custom CSS ─────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
 """ + _google_fonts_import + """
 """ + _local_fonts_css + """
 
-/* ── Color tokens (Python-driven theme state) ── */
-/* Font fallbacks if woff2 not loaded yet */
 :root {
     --serif-stack: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     --mono-stack:  'Courier New', Courier, monospace;
@@ -164,15 +172,12 @@ st.markdown("""
     --toggle-shadow: 0 2px 10px rgba(0,0,0,.1);
 }
 
-/* ── Base ── */
 html, body, [class*="css"] {
     font-family: var(--serif);
     background-color: var(--bg) !important;
     color: var(--text);
 }
 
-/* Force Streamlit's own containers to respect black — its built-in
-   dark theme uses navy and will bleed through without these overrides */
 [data-testid="stApp"],
 [data-testid="stAppViewContainer"],
 [data-testid="stMain"],
@@ -182,23 +187,13 @@ section[data-testid="stSidebar"] > div,
     background-color: var(--bg) !important;
 }
 
-/* FIX 3: Removed broken color-scheme: var(--color-scheme) line.
-   color-scheme is now injected as a literal value in the dynamic
-   f-string block below, which correctly sets it per theme. */
-html, body, [data-testid="stAppViewContainer"], [data-testid="stSidebar"],
-input, textarea, select, button {
-    /* color-scheme is set dynamically below */
-}
-
 [data-testid="stAppViewContainer"] {
     background: var(--bg) !important;
 }
 
-/* ── Hide Streamlit chrome ── */
 #MainMenu, footer, header { visibility: hidden; }
 .block-container { padding: 0.9rem 2.5rem 4rem; max-width: 1200px; }
 
-/* ── Theme Toggle Button ── */
 .theme-toggle-wrapper {
     position: fixed;
     top: 14px;
@@ -206,7 +201,6 @@ input, textarea, select, button {
     z-index: 9999;
 }
 
-/* ── Sidebar ── */
 [data-testid="stSidebar"],
 [data-testid="stSidebar"] > div:first-child {
     background: var(--surface) !important;
@@ -214,7 +208,6 @@ input, textarea, select, button {
 }
 [data-testid="stSidebar"] .block-container { padding: 1.5rem 1rem; }
 
-/* ── Hero Header ── */
 .hero {
     text-align: center;
     padding: 1.2rem 0 1.7rem;
@@ -255,7 +248,6 @@ input, textarea, select, button {
     margin: 0;
 }
 
-/* ── Divider ── */
 .divider {
     height: 1px;
     background: var(--border);
@@ -263,7 +255,6 @@ input, textarea, select, button {
     opacity: 0.7;
 }
 
-/* ── Section Labels ── */
 .section-label {
     font-family: var(--mono);
     font-size: 0.6rem;
@@ -282,7 +273,6 @@ input, textarea, select, button {
     background: var(--border);
 }
 
-/* ── Cards ── */
 .info-card {
     background: var(--card);
     border: 1px solid var(--border);
@@ -307,7 +297,6 @@ input, textarea, select, button {
     margin-bottom: 0.3rem;
 }
 
-/* ── Status Pills ── */
 .pill {
     display: inline-flex;
     align-items: center;
@@ -322,10 +311,9 @@ input, textarea, select, button {
 }
 .pill-green  { background: var(--pill-green-bg);  color: var(--success); border: 1px solid var(--pill-green-border); }
 .pill-blue   { background: var(--pill-blue-bg);   color: var(--accent);  border: 1px solid var(--pill-blue-border); }
-.pill-orange { background: var(--pill-orange-bg); color: var(--warning); }
+.pill-orange { background: var(--pill-orange-bg); color: var(--warning); border: 1px solid var(--pill-orange-border); }
 .pill-pink   { background: var(--pill-pink-bg);   color: var(--accent3); border: 1px solid var(--pill-pink-border); }
 
-/* ── Answer box ── */
 .answer-box {
     background: var(--card);
     border: 1px solid var(--border);
@@ -339,7 +327,6 @@ input, textarea, select, button {
     box-shadow: var(--shadow);
 }
 
-/* ── User message bubble ── */
 .user-bubble {
     text-align: right;
     margin-bottom: 0.5rem;
@@ -357,7 +344,6 @@ input, textarea, select, button {
     line-height: 1.5;
 }
 
-/* ── Source cards ── */
 .source-item {
     display: flex;
     align-items: center;
@@ -388,7 +374,6 @@ input, textarea, select, button {
     word-break: break-all;
 }
 
-/* ── Pipeline steps ── */
 .pipeline-step {
     display: flex;
     align-items: flex-start;
@@ -414,7 +399,6 @@ input, textarea, select, button {
 }
 .step-sub  { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); margin-top: 0.12rem; }
 
-/* ── Inputs ── */
 .stTextInput > div > div > input,
 .stTextArea > div > div > textarea {
     background: var(--card) !important;
@@ -432,14 +416,12 @@ input, textarea, select, button {
     box-shadow: var(--input-focus-shadow) !important;
     outline: none !important;
 }
-
 .stTextInput > div > div > input::placeholder,
 .stTextArea > div > div > textarea::placeholder {
     color: var(--muted) !important;
     opacity: 0.92 !important;
 }
 
-/* ── Buttons ── */
 .stButton > button {
     background: var(--accent) !important;
     color: #fff !important;
@@ -486,7 +468,6 @@ button[kind="secondary"],
     box-shadow: none !important;
 }
 
-/* ── File uploader ── */
 [data-testid="stFileUploader"] {
     background: var(--card);
     border: 1.5px dashed var(--border);
@@ -501,20 +482,14 @@ button[kind="secondary"],
     background: var(--card) !important;
     border: 1px dashed var(--border) !important;
 }
-[data-testid="stFileUploaderDropzone"] * {
-    color: var(--text) !important;
-}
-[data-testida="stFileUploaderDropzone"] small,
-[data-testid="stFileUploaderDropzoneInstructions"] {
-    color: var(--muted) !important;
-}
+[data-testid="stFileUploaderDropzone"] * { color: var(--text) !important; }
+[data-testid="stFileUploaderDropzoneInstructions"] { color: var(--muted) !important; }
 [data-testid="stFileUploaderDropzone"] [data-testid="stBaseButton-secondary"] {
     background: var(--surface) !important;
     color: var(--text) !important;
     border: 1px solid var(--border) !important;
 }
 
-/* ── Expander ── */
 [data-testid="stExpander"] {
     background: var(--card) !important;
     border: 1px solid var(--border) !important;
@@ -528,7 +503,6 @@ button[kind="secondary"],
     letter-spacing: 0.05em;
 }
 
-/* ── Progress / spinner ── */
 .stProgress > div > div > div { background: var(--accent) !important; }
 .stProgress > div > div {
     background: var(--surface) !important;
@@ -544,7 +518,6 @@ button[kind="secondary"],
     font-family: var(--mono) !important;
 }
 
-/* ── Metric ── */
 [data-testid="stMetric"] {
     background: var(--card) !important;
     border: 1px solid var(--border) !important;
@@ -566,7 +539,6 @@ button[kind="secondary"],
     font-weight: 500 !important;
 }
 
-/* ── Tabs ── */
 [data-testid="stTabs"] [role="tablist"] {
     border-bottom: 1px solid var(--border);
     gap: 0;
@@ -590,7 +562,6 @@ button[kind="secondary"],
     height: 3px !important;
 }
 
-/* ── Link buttons ── */
 [data-testid="stLinkButton"] > a {
     background: var(--card) !important;
     color: var(--accent2) !important;
@@ -610,7 +581,6 @@ button[kind="secondary"],
     background: var(--link-hover-bg) !important;
 }
 
-/* ── Status box ── */
 [data-testid="stStatusWidget"] {
     background: linear-gradient(180deg, var(--card), var(--surface)) !important;
     border: 1px solid var(--border) !important;
@@ -635,14 +605,12 @@ button[kind="secondary"],
     opacity: 1 !important;
 }
 
-/* ── Alerts ── */
 [data-testid="stAlert"] {
     border-radius: var(--radius) !important;
     font-family: var(--mono) !important;
     font-size: 0.8rem !important;
 }
 
-/* ── Notice ── */
 .notice {
     font-family: var(--mono);
     font-size: 0.7rem;
@@ -652,7 +620,6 @@ button[kind="secondary"],
     line-height: 1.7;
 }
 
-/* ── Pipeline status readability ── */
 .status-line {
     color: var(--text) !important;
     font-family: var(--mono) !important;
@@ -690,23 +657,13 @@ button[kind="secondary"],
     opacity: 1 !important;
 }
 
-/* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--surface); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
 
-/* ── Theme toggle button styling ── */
-.st-key-theme_switch {
-    display: inline-block;
-    float: right;
-    margin: 0 !important;
-}
-
-.st-key-theme_switch > div {
-    margin: 0 !important;
-}
-
+.st-key-theme_switch { display: inline-block; float: right; margin: 0 !important; }
+.st-key-theme_switch > div { margin: 0 !important; }
 .st-key-theme_switch button {
     background: var(--card);
     border: 1.5px solid var(--border);
@@ -732,13 +689,35 @@ button[kind="secondary"],
     color: var(--accent);
     box-shadow: 0 3px 14px rgba(37,99,235,0.18);
 }
+
+/* ── Number input (quiz question count) ── */
+[data-testid="stNumberInput"] input {
+    background: var(--card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 6px !important;
+    color: var(--text) !important;
+    font-family: var(--serif) !important;
+    box-shadow: var(--shadow) !important;
+}
+[data-testid="stNumberInput"] input:focus {
+    border-color: var(--accent) !important;
+    box-shadow: var(--input-focus-shadow) !important;
+}
+
+/* ── Radio buttons (quiz answer options) ── */
+[data-testid="stRadio"] label {
+    font-family: var(--mono) !important;
+    font-size: 0.78rem !important;
+    color: var(--text) !important;
+}
+[data-testid="stRadio"] [data-testid="stMarkdownContainer"] p {
+    font-family: var(--mono) !important;
+    font-size: 0.78rem !important;
+    color: var(--text) !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
-# ── FIX 1: Removed # comments from inside f-string (they were rendered as
-#    invalid CSS and caused the entire :root block to partially fail).
-# ── FIX 2: Added color-scheme as a real CSS literal property so native
-#    controls (inputs, scrollbars) correctly respond to the theme on Windows.
 st.markdown(f"""
 <style>
 :root {{
@@ -773,6 +752,7 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def extract_link_from_source(citation) -> str:
     if isinstance(citation, dict):
@@ -800,6 +780,28 @@ def load_qa_modules():
     from rag.qa_pipeline import qa_pipeline
     from rag.citation_handler import format_citations
     return qa_pipeline, format_citations
+
+
+# ── Quiz helpers (inline — no separate file needed) ───────────────────────────
+def _pill(text: str, variant: str = "blue") -> str:
+    return f'<span class="pill pill-{variant}">{text}</span>'
+
+def _section(label: str) -> None:
+    st.markdown(f'<div class="section-label">{label}</div>', unsafe_allow_html=True)
+
+def _divider() -> None:
+    st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+
+def _card_html(body: str, label: str = "") -> str:
+    lbl = f'<div class="label">{label}</div>' if label else ""
+    return f'<div class="info-card">{lbl}{body}</div>'
+
+def _notice(text: str) -> None:
+    st.markdown(f'<div class="notice">{text}</div>', unsafe_allow_html=True)
+
+def _status_line(text: str, ok: bool = False) -> None:
+    cls = "status-line status-line-ok" if ok else "status-line"
+    st.markdown(f'<div class="{cls}">{text}</div>', unsafe_allow_html=True)
 
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
@@ -832,11 +834,15 @@ with st.sidebar:
 
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("↺  Reset pipeline"):
-            for k in ("pipeline_ready", "embedded_docs", "doc_summary", "chat_history", "processing"):
+            for k in ("pipeline_ready", "embedded_docs", "doc_summary", "chat_history", "processing", "available_sources", "source_titles", "selected_sources"):
                 st.session_state[k] = False if isinstance(st.session_state[k], bool) else (
                     [] if isinstance(st.session_state[k], list) else
                     ({} if isinstance(st.session_state[k], dict) else None)
                 )
+            # Also reset quiz state when pipeline is reset
+            for k in ("quiz_text", "quiz_parsed", "quiz_user_answers", "quiz_result"):
+                st.session_state[k] = "" if k == "quiz_text" else ([] if k == "quiz_parsed" else ({} if k == "quiz_user_answers" else None))
+            st.session_state.quiz_phase = "config"
             st.rerun()
     else:
         st.markdown(
@@ -845,18 +851,18 @@ with st.sidebar:
         )
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown(
-            '<div class="notice">Add sources in the main panel and run the pipeline to enable Q&amp;A.</div>',
+            '<div class="notice">Add sources in the main panel and run the pipeline to enable Q&amp;A and Quizzes.</div>',
             unsafe_allow_html=True,
         )
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown('<div class="section-label">Pipeline Steps</div>', unsafe_allow_html=True)
     steps = [
-        ("01", "Load Sources", "PDFs + YouTube transcripts"),
-        ("02", "Clean", "Normalise & de-noise text"),
-        ("03", "Chunk", "Split into semantic windows"),
-        ("04", "Embed", "Vector representations"),
-        ("05", "QA", "Retrieve & generate answers"),
+        ("01", "Load Sources",  "PDFs + YouTube transcripts"),
+        ("02", "Clean",         "Normalise & de-noise text"),
+        ("03", "Chunk",         "Split into semantic windows"),
+        ("04", "Embed",         "Vector representations"),
+        ("05", "QA / Quiz",     "Retrieve & generate answers"),
     ]
     for num, title, sub in steps:
         st.markdown(
@@ -874,13 +880,17 @@ st.markdown("""
 <div class="hero">
   <div class="hero-badge">Your AI Study Companion</div>
   <h1><span>Learn</span> Mate</h1>
-  <p>Multi-source · PDF &amp; Video · Semantic Q&amp;A</p>
+  <p>Multi-source · PDF &amp; Video · Semantic Q&amp;A · Quiz</p>
 </div>
 <div class="divider"></div>
 """, unsafe_allow_html=True)
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
-tab_ingest, tab_qa = st.tabs(["⬆  Sources & Ingest", "💬  Ask Questions"])
+tab_ingest, tab_qa, tab_quiz = st.tabs([
+    "⬆  Sources & Ingest",
+    "💬  Ask Questions",
+    "📝  Quiz",
+])
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -957,7 +967,7 @@ with tab_ingest:
 
     st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
-    # ── Run pipeline ─────────────────────────────────────────────────────────
+    # ── Run pipeline ──────────────────────────────────────────────────────────
     col_btn, col_hint = st.columns([3, 7])
     with col_btn:
         run_btn = st.button("▶  Run Pipeline", use_container_width=True)
@@ -968,11 +978,11 @@ with tab_ingest:
         )
 
     if run_btn:
-        yt_urls = [u.strip() for u in st.session_state.yt_inputs if u.strip()]
+        yt_urls   = [u.strip() for u in st.session_state.yt_inputs if u.strip()]
         pdf_paths = []
 
         if active_uploaded_pdfs:
-            import tempfile, shutil
+            import tempfile
             tmp_dir = tempfile.mkdtemp()
             for _, f in active_uploaded_pdfs:
                 tmp_path = os.path.join(tmp_dir, f.name)
@@ -995,7 +1005,7 @@ with tab_ingest:
 
                     st.markdown('<div class="status-line">📥 Loading sources - may take a moment for YouTube videos...</div>', unsafe_allow_html=True)
                     progress_bar.progress(5, text="📥  Loading sources…")
-                    manager = DocumentManager()
+                    manager   = DocumentManager()
                     documents = manager.load_all_sources(
                         pdf_paths=pdf_paths,
                         youtube_urls=yt_urls,
@@ -1031,7 +1041,7 @@ with tab_ingest:
                     st.markdown('<div class="status-line">🧠 Generating embeddings - this is the slow step...</div>', unsafe_allow_html=True)
                     progress_bar.progress(65, text="🧠  Embedding…")
                     embedding_model = EmbeddingModel()
-                    embedded_docs = embedding_model.embed_documents(chunks)
+                    embedded_docs   = embedding_model.embed_documents(chunks)
                     progress_bar.progress(95, text="🧠  Embeddings ready!")
                     st.markdown(
                         f'<div class="status-line status-line-ok">✅ Embedded {len(embedded_docs)} documents</div>',
@@ -1039,11 +1049,20 @@ with tab_ingest:
                     )
 
                     progress_bar.progress(100, text="✅  Pipeline complete!")
-                    status.update(label="✅ Pipeline complete — go to Ask Questions tab!", state="complete", expanded=False)
+                    status.update(
+                        label="✅ Pipeline complete — go to Ask Questions or Quiz tab!",
+                        state="complete",
+                        expanded=False,
+                    )
 
-                st.session_state.embedded_docs = embedded_docs
+                st.session_state.embedded_docs  = embedded_docs
                 st.session_state.pipeline_ready = True
-                st.session_state.doc_summary = {
+                # Deduplicate sources (set removes duplicates, then convert to sorted list for consistency)
+                unique_sources = sorted(list(set(raw_summary.get("sources", []))))
+                st.session_state.available_sources = unique_sources
+                st.session_state.source_titles = raw_summary.get("source_titles", {})
+                st.session_state.selected_sources = unique_sources  # Default: all sources selected
+                st.session_state.doc_summary    = {
                     "pdf_count":      len(pdf_paths),
                     "youtube_count":  len(yt_urls),
                     "total_chunks":   len(chunks),
@@ -1085,10 +1104,10 @@ with tab_qa:
                 if entry.get("sources"):
                     with st.expander(f"📎  {len(entry['sources'])} source(s)  — click to expand"):
                         for src in entry["sources"]:
-                            stype = src.get("type", "")
+                            stype   = src.get("type", "")
                             display = src.get("display", "")
-                            link = src.get("link", "")
-                            fname = src.get("file", "")
+                            link    = src.get("link", "")
+                            fname   = src.get("file", "")
 
                             if stype == "YouTube" and link:
                                 label = f"▶  {display}" if display else link
@@ -1144,15 +1163,15 @@ with tab_qa:
 
                     links = []
                     for doc in sources:
-                        meta = doc.get("metadata", {})
+                        meta     = doc.get("metadata", {})
                         src_type = meta.get("source", "unknown")
                         if src_type == "youtube":
                             links.append({
-                                "type": "YouTube",
-                                "title": meta.get("title", "YouTube Video"),
+                                "type":      "YouTube",
+                                "title":     meta.get("title", "YouTube Video"),
                                 "timestamp": meta.get("timestamp", "N/A"),
-                                "link": meta.get("link", meta.get("video_url", "")),
-                                "display": f"{meta.get('title','YouTube Video')} ({meta.get('timestamp','N/A')})"
+                                "link":      meta.get("link", meta.get("video_url", "")),
+                                "display":   f"{meta.get('title','YouTube Video')} ({meta.get('timestamp','N/A')})"
                             })
                         elif src_type == "pdf":
                             fname = (meta.get("filename")
@@ -1161,14 +1180,14 @@ with tab_qa:
                                      or "Document")
                             page = meta.get("page", "N/A")
                             links.append({
-                                "type": "PDF",
-                                "file": fname,
-                                "page": page,
+                                "type":    "PDF",
+                                "file":    fname,
+                                "page":    page,
                                 "display": f"{fname} — Page {page}"
                             })
                         else:
                             links.append({
-                                "type": src_type,
+                                "type":    src_type,
                                 "display": meta.get("title", str(meta))
                             })
                     links = links[:3]
@@ -1186,3 +1205,513 @@ with tab_qa:
 
         elif ask_btn:
             st.warning("Please enter a question.")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TAB 3 — QUIZ
+# ═══════════════════════════════════════════════════════════════════════════════
+with tab_quiz:
+
+    # ── Gate ─────────────────────────────────────────────────────────────────
+    if not st.session_state.pipeline_ready:
+        st.markdown(
+            '<div class="answer-box" style="border-top-color:var(--accent2);'
+            'text-align:center;color:var(--muted)">'
+            'Pipeline not ready. Add sources and run ingest first.'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
+    # ── Phase breadcrumb ─────────────────────────────────────────────────────
+    else:
+        phase      = st.session_state.quiz_phase
+        active_idx = {"config": 0, "answering": 1, "results": 2}.get(phase, 0)
+        crumb_labels = ("01 Configure", "02 Answer", "03 Results")
+
+        crumb_html = '<div style="display:flex;gap:1.2rem;margin-bottom:1rem;align-items:center">'
+        for i, label in enumerate(crumb_labels):
+            if i == active_idx:
+                crumb_html += f'<span class="pill pill-blue">{label}</span>'
+            elif i < active_idx:
+                crumb_html += f'<span class="pill pill-green">{label}</span>'
+            else:
+                crumb_html += (
+                    f'<span style="font-family:var(--mono);font-size:.65rem;'
+                    f'letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">'
+                    f'{label}</span>'
+                )
+            if i < 2:
+                crumb_html += '<span style="color:var(--border);font-size:.8rem">→</span>'
+        crumb_html += '</div>'
+        st.markdown(crumb_html, unsafe_allow_html=True)
+
+        # ══════════════════════════════════════════════════════════════════════
+        # PHASE 1 — CONFIG
+        # ══════════════════════════════════════════════════════════════════════
+        if phase == "config":
+
+            _section("Quiz Configuration")
+
+            col_topic, col_right = st.columns([5, 3], gap="large")
+
+            with col_topic:
+                quiz_topic = st.text_input(
+                    "Topic",
+                    value=st.session_state.quiz_topic,
+                    placeholder="e.g. Gradient Descent, Transformers, Neural Networks…",
+                    label_visibility="collapsed",
+                    key="quiz_topic_input",
+                )
+                _notice("Enter the subject you want to be tested on.")
+
+            with col_right:
+                quiz_num_q = st.number_input(
+                    "Number of questions",
+                    min_value=1,
+                    max_value=20,
+                    value=st.session_state.quiz_num_q,
+                    step=1,
+                    key="quiz_num_q_input",
+                )
+
+            _section("Difficulty")
+            diff_cols   = st.columns(4)
+            diff_labels = ["Easy",  "Medium", "Hard",  "Mix"]
+            diff_vals   = ["easy",  "medium", "hard",  "mix"]
+
+            for col, label, val in zip(diff_cols, diff_labels, diff_vals):
+                with col:
+                    is_sel = st.session_state.quiz_difficulty == val
+                    if st.button(
+                        label,
+                        key=f"diff_{val}",
+                        use_container_width=True,
+                        type="primary" if is_sel else "secondary",
+                    ):
+                        st.session_state.quiz_difficulty = val
+                        st.rerun()
+
+            _divider()
+            _section("Source Filter  (optional)")
+            
+            available_sources = st.session_state.available_sources
+            source_titles = st.session_state.source_titles
+            
+            if available_sources:
+                _notice(f"Select sources ({len(available_sources)} available):")
+                
+                # Create columns for checkbox layout
+                cols = st.columns(2)
+                selected = []
+                
+                for idx, source in enumerate(available_sources):
+                    col_idx = idx % 2
+                    with cols[col_idx]:
+                        # Get display title from mapping, with icon
+                        if source.startswith("http"):
+                            # YouTube URL
+                            title = source_titles.get(source, "YouTube Video")
+                            display_name = f"📺 {title}"
+                        else:
+                            # PDF filename
+                            title = source_titles.get(source, source)
+                            display_name = f"📄 {title}"
+                        
+                        if st.checkbox(display_name, value=True, key=f"source_check_{idx}"):
+                            selected.append(source)
+                
+                st.session_state.selected_sources = selected if selected else available_sources
+            else:
+                _notice("No sources loaded yet. Go to Ingest tab to add PDFs or YouTube videos.")
+                st.session_state.selected_sources = []
+
+            _divider()
+
+            col_btn, col_hint = st.columns([3, 7])
+            with col_btn:
+                gen_btn = st.button("▶  Generate Quiz", use_container_width=True)
+            with col_hint:
+                _notice("Retrieves relevant content and generates multiple-choice questions.")
+
+            if gen_btn:
+                topic_val   = quiz_topic.strip()
+                sources_val = st.session_state.selected_sources or None
+
+                if not topic_val:
+                    st.error("Please enter a topic before generating.")
+                else:
+                    st.session_state.quiz_topic = topic_val
+                    st.session_state.quiz_num_q = int(quiz_num_q)
+
+                    try:
+                        from quiz.quiz_generator import QuizGenerator
+                        from quiz.scoring import QuizScorer
+
+                        progress_bar = st.progress(0, text="Starting quiz generation…")
+
+                        with st.status("Generating quiz…", expanded=True) as status:
+
+                            _status_line("🔍  Retrieving relevant chunks from the knowledge base…")
+                            progress_bar.progress(15, text="🔍  Retrieving context…")
+
+                            generator = QuizGenerator()
+                            progress_bar.progress(35, text="🧠  Calling language model…")
+                            _status_line("🧠  Generating questions with the language model…")
+
+                            quiz_text = generator.generate_quiz(
+                                query         = topic_val,
+                                embedded_docs = st.session_state.embedded_docs,
+                                num_questions = int(quiz_num_q),
+                                difficulty    = st.session_state.quiz_difficulty,
+                                sources       = sources_val,
+                            )
+
+                            progress_bar.progress(75, text="✂️  Parsing questions…")
+                            _status_line("✂️  Parsing and validating questions…")
+
+                            scorer = QuizScorer()
+                            parsed = scorer.parse_quiz(quiz_text)
+
+                            if not parsed:
+                                status.update(label="❌ Could not parse quiz output", state="error")
+                                progress_bar.empty()
+                                st.error("The model returned an unexpected format. Try a different topic or retry.")
+                            else:
+                                progress_bar.progress(100, text="✅  Quiz ready!")
+                                _status_line(f"✅  Generated {len(parsed)} question(s)", ok=True)
+                                status.update(
+                                    label=f"✅  Quiz ready — {len(parsed)} questions!",
+                                    state="complete",
+                                    expanded=False,
+                                )
+
+                                st.session_state.quiz_text         = quiz_text
+                                st.session_state.quiz_parsed       = parsed
+                                st.session_state.quiz_user_answers = {}
+                                st.session_state.quiz_result       = None
+                                st.session_state.quiz_detail_qid   = None
+                                st.session_state.quiz_phase        = "answering"
+                                st.rerun()
+
+                    except Exception as e:
+                        st.error(f"❌ Quiz generation error: {e}")
+                        st.exception(e)
+
+        # ══════════════════════════════════════════════════════════════════════
+        # PHASE 2 — ANSWERING
+        # ══════════════════════════════════════════════════════════════════════
+        elif phase == "answering":
+
+            parsed   = st.session_state.quiz_parsed
+            num_q    = len(parsed)
+            diff     = st.session_state.quiz_difficulty.capitalize()
+            topic    = st.session_state.quiz_topic
+
+            header_col, reset_col = st.columns([7, 2])
+            with header_col:
+                _section(f"Quiz · {topic}")
+                st.markdown(
+                    _pill(f"{num_q} Questions", "blue") + "&nbsp;&nbsp;" +
+                    _pill(diff, {"Easy":"green","Medium":"blue","Hard":"pink","Mix":"orange"}.get(diff,"blue")),
+                    unsafe_allow_html=True,
+                )
+                st.markdown("<br>", unsafe_allow_html=True)
+            with reset_col:
+                if st.button("↺  New Quiz", use_container_width=True):
+                    st.session_state.quiz_phase = "config"
+                    st.rerun()
+
+            user_answers = st.session_state.quiz_user_answers
+
+            for q in parsed:
+                qid   = q["id"]
+                raw   = q["question"]
+                lines = raw.strip().split("\n")
+
+                # Parse question text and options
+                q_text  = ""
+                options = []
+
+                def _is_option_line(text: str) -> bool:
+                    return bool(text and len(text) > 1 and text[0] in "ABCDabcd" and text[1] in ".):")
+
+                for line in lines:
+                    stripped = line.strip()
+                    if stripped.lower().startswith("question"):
+                        parts = stripped.split(":", 1)
+                        if len(parts) > 1:
+                            q_text = parts[1].strip()
+                    elif _is_option_line(stripped):
+                        options.append(stripped)
+                    # Answer: lines intentionally skipped (hidden from user)
+
+                # Handle formats where the question header is on one line and
+                # the actual question text is on the next non-option line.
+                if not q_text:
+                    for i, line in enumerate(lines):
+                        stripped = line.strip()
+                        if stripped.lower().startswith("question"):
+                            for candidate in lines[i + 1:]:
+                                candidate = candidate.strip()
+                                if not candidate:
+                                    continue
+                                if candidate.lower().startswith("answer"):
+                                    continue
+                                if _is_option_line(candidate):
+                                    continue
+                                q_text = candidate
+                                break
+                            if q_text:
+                                break
+
+                if not q_text:
+                    for candidate in lines:
+                        candidate = candidate.strip()
+                        if not candidate:
+                            continue
+                        if candidate.lower().startswith("answer"):
+                            continue
+                        if _is_option_line(candidate):
+                            continue
+                        if candidate.lower().startswith("question"):
+                            continue
+                        q_text = candidate
+                        break
+
+                if not q_text:
+                    q_text = f"Question {qid}"
+
+                answered      = qid in user_answers
+                border_accent = "var(--accent2)" if answered else "var(--border)"
+
+                st.markdown(
+                    f'<div class="info-card" style="border-left:3px solid {border_accent};margin-bottom:.3rem">'
+                    f'<div class="label">Question {qid}</div>'
+                    f'<span style="font-size:.92rem;line-height:1.7">{q_text}</span>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+
+                if options:
+                    radio_options = options
+                    current_idx   = None
+                    if qid in user_answers:
+                        letter = user_answers[qid]
+                        for idx, opt in enumerate(options):
+                            if opt[0].upper() == letter:
+                                current_idx = idx
+                                break
+
+                    choice = st.radio(
+                        f"q{qid}_radio",
+                        options=radio_options,
+                        index=current_idx,
+                        label_visibility="collapsed",
+                        key=f"radio_{qid}",
+                    )
+
+                    if choice is not None:
+                        user_answers[qid] = choice[0].upper()
+                    elif qid in user_answers:
+                        del user_answers[qid]
+                else:
+                    prev = user_answers.get(qid, "")
+                    ans  = st.text_input(
+                        "Your answer (A/B/C/D)",
+                        value=prev,
+                        max_chars=1,
+                        key=f"ans_text_{qid}",
+                        placeholder="A, B, C or D",
+                    )
+                    if ans.strip():
+                        user_answers[qid] = ans.strip().upper()[0]
+
+                st.session_state.quiz_user_answers = user_answers
+
+            _divider()
+
+            answered_count = len(user_answers)
+            pct_answered   = int((answered_count / num_q) * 100) if num_q else 0
+            st.progress(pct_answered / 100, text=f"Answered {answered_count} / {num_q}")
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            col_submit, col_regen = st.columns([3, 1])
+            with col_submit:
+                submit_btn = st.button(
+                    "Submit Answers →",
+                    use_container_width=True,
+                    disabled=(answered_count < num_q),
+                )
+                if answered_count < num_q:
+                    _notice(f"Answer all {num_q} questions to enable submission.")
+            with col_regen:
+                if st.button("↺  Regenerate", use_container_width=True):
+                    st.session_state.quiz_phase = "config"
+                    st.rerun()
+
+            if submit_btn:
+                from quiz.scoring import QuizScorer
+                scorer = QuizScorer()
+                result = scorer.evaluate(
+                    st.session_state.quiz_text,
+                    st.session_state.quiz_user_answers,
+                )
+                st.session_state.quiz_result = result
+                st.session_state.quiz_phase  = "results"
+                st.rerun()
+
+        # ══════════════════════════════════════════════════════════════════════
+        # PHASE 3 — RESULTS
+        # ══════════════════════════════════════════════════════════════════════
+        elif phase == "results":
+
+            result = st.session_state.quiz_result
+            topic  = st.session_state.quiz_topic
+            diff   = st.session_state.quiz_difficulty.capitalize()
+
+            if not result:
+                st.warning("No results found. Please take the quiz first.")
+            else:
+                score   = result["score"]
+                total   = result["total"]
+                pct     = result["percentage"]
+                details = result["details"]
+
+                def _grade(p):
+                    if p >= 90: return ("Outstanding",     "green")
+                    if p >= 75: return ("Great Work",       "green")
+                    if p >= 60: return ("Good Effort",      "blue")
+                    if p >= 40: return ("Keep Practicing",  "orange")
+                    return             ("Keep Studying",    "pink")
+
+                grade_label, grade_variant = _grade(pct)
+
+                _section(f"Results · {topic}")
+
+                hero_col, meta_col = st.columns([3, 5], gap="large")
+
+                with hero_col:
+                    st.markdown(
+                        f'<div class="info-card" style="text-align:center;padding:1.5rem 1rem;">'
+                        f'<div class="label">Final Score</div>'
+                        f'<div style="font-family:var(--serif);font-size:3.5rem;font-weight:600;'
+                        f'color:var(--accent);line-height:1;margin:.4rem 0">{score}/{total}</div>'
+                        f'<div style="font-family:var(--mono);font-size:.8rem;color:var(--muted)">'
+                        f'{pct:.1f}%</div>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+                    st.markdown(_pill(grade_label, grade_variant), unsafe_allow_html=True)
+
+                with meta_col:
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    st.progress(pct / 100, text=f"{pct:.1f}% correct")
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    st.markdown(
+                        _card_html(f"{total}",         "Total questions") +
+                        _card_html(f"{score}",         "Correct") +
+                        _card_html(f"{total - score}", "Incorrect"),
+                        unsafe_allow_html=True,
+                    )
+                    st.markdown(
+                        _pill(diff, {"Easy":"green","Medium":"blue","Hard":"pink","Mix":"orange"}.get(diff,"blue")),
+                        unsafe_allow_html=True,
+                    )
+
+                _divider()
+                _section("Question Breakdown")
+
+                parsed     = st.session_state.quiz_parsed
+                parsed_map = {q["id"]: q for q in parsed}
+
+                for r in details:
+                    qid      = r["id"]
+                    correct  = r["correct"]
+                    user_ans = r["user"] or "—"
+                    is_ok    = r["is_correct"]
+
+                    # Extract full question text and options
+                    q_text  = ""
+                    options = []
+                    raw_q   = parsed_map.get(qid, {}).get("question", "")
+                    q_lines = raw_q.split("\n")
+                    
+                    for line in q_lines:
+                        stripped = line.strip()
+                        if stripped.lower().startswith("question"):
+                            parts = stripped.split(":", 1)
+                            if len(parts) > 1 and parts[1].strip():
+                                q_text = parts[1].strip()
+                        elif len(stripped) > 1 and stripped[0] in "ABCDabcd" and stripped[1] in (".", ")", ":"):
+                            options.append(stripped)
+                    
+                    if not q_text:
+                        for line in q_lines:
+                            stripped = line.strip()
+                            if not stripped or stripped.lower().startswith(("question", "answer")):
+                                continue
+                            if len(stripped) > 1 and stripped[0] in "ABCDabcd" and stripped[1] in (".", ")", ":"):
+                                continue
+                            q_text = stripped
+                            break
+                    
+                    if not q_text:
+                        q_text = f"Question {qid}"
+
+                    icon         = "✅" if is_ok else "❌"
+                    border_color = "var(--success)" if is_ok else "var(--accent3)"
+                    bg_color     = "rgba(74,222,128,.08)" if is_ok else "rgba(196,167,255,.08)"
+                    ans_color    = "var(--success)" if is_ok else "var(--accent3)"
+                    ans_bg_user  = "rgba(196,167,255,.15)" if not is_ok else "rgba(74,222,128,.15)"
+                    ans_border_user = "rgba(196,167,255,.4)" if not is_ok else "rgba(74,222,128,.4)"
+
+                    # Build options HTML
+                    options_html = ""
+                    if options:
+                        options_html = '<div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:.4rem">Options</div>'
+                        for opt in options:
+                            options_html += f'<div style="padding:.35rem 0;font-size:.85rem;line-height:1.4">{opt}</div>'
+
+                    st.markdown(
+                        f'<div class="info-card" style="background:{bg_color};border-left:4px solid {border_color};'
+                        f'padding:1.2rem;border-radius:8px;margin-bottom:1rem">'
+                        f'<div style="display:grid;grid-template-columns:1fr auto;gap:1.5rem;align-items:flex-start">'
+                        f'<div style="display:flex;flex-direction:column;gap:.8rem">'
+                        f'<div>'
+                        f'<div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.4rem">Question {qid}</div>'
+                        f'<div style="max-height:80px;overflow-y:auto;padding-right:.5rem;font-size:.95rem;line-height:1.6;color:var(--text);margin-bottom:.6rem">'
+                        f'{q_text}'
+                        f'</div>'
+                        f'</div>'
+                        f'<div style="border-top:1px solid var(--border);padding-top:.6rem;max-height:100px;overflow-y:auto;padding-right:.5rem">'
+                        f'{options_html}'
+                        f'</div>'
+                        f'</div>'
+                        f'<div style="display:flex;flex-direction:column;gap:.6rem;min-width:160px">'
+                        f'<div style="background:{ans_bg_user};border:1px solid {ans_border_user};padding:.7rem;border-radius:6px;text-align:center">'
+                        f'<div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:.3rem">Your Answer</div>'
+                        f'<div style="font-size:1.4rem;font-weight:700;color:{ans_color};font-family:var(--mono)">{user_ans} <span style="font-size:.9rem">{icon}</span></div>'
+                        f'</div>'
+                        f'<div style="background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.4);padding:.7rem;border-radius:6px;text-align:center">'
+                        f'<div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:.3rem">✅ Correct</div>'
+                        f'<div style="font-size:1.4rem;font-weight:700;color:var(--success);font-family:var(--mono)">{correct or "?"}</div>'
+                        f'</div>'
+                        f'</div>'
+                        f'</div>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+
+                _divider()
+
+                col_retry, col_new = st.columns(2, gap="large")
+                with col_retry:
+                    if st.button("↺  Retake This Quiz", use_container_width=True):
+                        st.session_state.quiz_user_answers = {}
+                        st.session_state.quiz_result       = None
+                        st.session_state.quiz_phase        = "answering"
+                        st.rerun()
+                with col_new:
+                    if st.button("＋  New Quiz", use_container_width=True):
+                        st.session_state.quiz_phase = "config"
+                        st.rerun()

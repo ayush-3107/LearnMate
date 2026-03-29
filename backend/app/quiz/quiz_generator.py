@@ -47,10 +47,21 @@ class QuizGenerator:
         if not sources:
             return docs
 
-        return [
-            d for d in docs
-            if d["metadata"].get("source") in sources
-        ]
+        # Filter by specific source (filename for PDFs, video_url for YouTube)
+        filtered = []
+        for d in docs:
+            metadata = d["metadata"]
+            source_type = metadata.get("source")
+            
+            # Check if this document's source is in the selected sources
+            if source_type == "pdf":
+                if metadata.get("filename") in sources:
+                    filtered.append(d)
+            elif source_type == "youtube":
+                if metadata.get("video_url") in sources:
+                    filtered.append(d)
+        
+        return filtered
 
     # -------------------------
     # Generate Quiz
