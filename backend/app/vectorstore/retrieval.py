@@ -1,43 +1,84 @@
 from sentence_transformers import SentenceTransformer
 import numpy as np
 import faiss
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk import pos_tag
 
-# load embedding model
+
+nltk.download('punkt')
+nltk.download('averaged_perceptron_tagger')
+
+# -------------------------
+# Load embedding model
+# -------------------------
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
-# Minimum similarity score to consider a chunk relevant
-# Range: 0.0 (anything) to 1.0 (exact match). 0.4 is a good balance.
-SIMILARITY_THRESHOLD = float(0.4)
+# Similarity threshold (recommended)
+SIMILARITY_THRESHOLD = 0.2
 
+
+# -------------------------
+# POS-based keyword extractor
+# -------------------------
+def extract_keywords(query):
+    """
+    Keep only important words:
+    - Nouns (NN, NNS)
+    - Adjectives (JJ)
+    """
+    tokens = word_tokenize(query)
+    tagged = pos_tag(tokens)
+
+    keywords = [
+        word.lower() for word, pos in tagged
+        if pos.startswith('NN') or pos.startswith('JJ')
+    ]
+
+    return " ".join(keywords)
+
+
+# -------------------------
+# Retrieval Function
+# -------------------------
 def retrieve_documents(query, index, embedded_docs, k=3):
     """
     Retrieve top-k similar documents using FAISS.
-    Only returns chunks above SIMILARITY_THRESHOLD — if none pass,
-    returns empty list so the LLM won't hallucinate from weak context.
+    Uses POS-filtered query for better retrieval.
     """
+
     # -------------------------
-    # Step 1: Encode query
+    # Step 1: Extract keywords
     # -------------------------
-    query_embedding = model.encode([query])
+    keyword_query = extract_keywords(query)
+
+    # Fallback: if POS removes everything
+    if not keyword_query.strip():
+        keyword_query = query
+
+    # -------------------------
+    # Step 2: Encode query
+    # -------------------------
+    query_embedding = model.encode([keyword_query])
     query_vector = np.array(query_embedding).astype("float32")
 
-    # Normalize (required for cosine similarity with IndexFlatIP)
+    # Normalize for cosine similarity
     faiss.normalize_L2(query_vector)
 
     # -------------------------
-    # Step 2: Search
+    # Step 3: Search
     # -------------------------
     distances, indices = index.search(query_vector, k)
 
     # -------------------------
-    # Step 3: Filter by similarity threshold
-    # distances here are cosine similarity scores (0.0 - 1.0)
-    # higher = more similar
+    # Step 4: Filter by threshold
     # -------------------------
     results = []
+
     for score, i in zip(distances[0], indices[0]):
         if i == -1 or i >= len(embedded_docs):
             continue
+
         if score >= SIMILARITY_THRESHOLD:
             results.append(embedded_docs[i])
 
