@@ -114,7 +114,8 @@ def load_youtube_transcript(url, chunk_duration=30):
                 "timestamped_link": timestamped_url,  # Keep timestamp URL if needed
                 "chunk_duration": chunk_duration,
                 "video_title": video_title,  # Include video title
-                "video_id": video_id,  # Include video ID
+                "video_id": video_id,  # Include video ID,
+
             })
 
         return docs

@@ -56,6 +56,7 @@ class DocumentManager:
                         "source": "youtube",
                         "video_url": chunk["source"],
                         "link": chunk["source"],
+                        "timestamped_link": chunk.get("timestamped_link", chunk["source"]),
                         "title": video_title,
                         "video_id": chunk.get("video_id"),
                         "timestamp": chunk["timestamp"],
