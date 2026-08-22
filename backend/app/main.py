@@ -1070,7 +1070,8 @@ with tab_ingest:
                 st.rerun()
 
             except Exception as e:
-                progress_bar.empty()
+                if 'progress_bar' in locals():
+                    progress_bar.empty()
                 st.error(f"❌ Pipeline error: {e}")
                 st.exception(e)
 
@@ -1167,7 +1168,7 @@ with tab_qa:
                                 "type":      "YouTube",
                                 "title":     meta.get("title", "YouTube Video"),
                                 "timestamp": meta.get("timestamp", "N/A"),
-                                "link":      meta.get("link", meta.get("video_url", "")),
+                                "link": meta.get("timestamped_link",meta.get("link", meta.get("video_url", ""))),
                                 "display":   f"{meta.get('title','YouTube Video')} ({meta.get('timestamp','N/A')})"
                             })
                         elif src_type == "pdf":
